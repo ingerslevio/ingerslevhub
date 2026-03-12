@@ -1,0 +1,14 @@
+{
+  "name": "family-hub",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --names api,web --prefix-colors blue,green \"npm run dev --prefix src/api\" \"npm run dev --prefix src/web\"",
+    "install:all": "npm install --prefix src/api && npm install --prefix src/web",
+    "install:api": "npm install --prefix src/api",
+    "install:web": "npm install --prefix src/web"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

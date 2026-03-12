@@ -1,0 +1,121 @@
+import { pgTable, text, uuid, timestamp, boolean, date, integer } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  googleId: text('google_id').unique(),
+  email: text('email').unique().notNull(),
+  name: text('name').notNull(),
+  avatarUrl: text('avatar_url'),
+  apiKey: uuid('api_key').default(sql`gen_random_uuid()`).notNull(),
+  selectedCalendarId: text('selected_calendar_id'),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const students = pgTable('students', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  grade: text('grade'),
+  color: text('color').default('#6366f1').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const subjects = pgTable('subjects', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  studentId: uuid('student_id').references(() => students.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  color: text('color').default('#6366f1').notNull(),
+});
+
+export const mealPlans = pgTable('meal_plans', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  weekStart: date('week_start').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const meals = pgTable('meals', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  mealPlanId: uuid('meal_plan_id').references(() => mealPlans.id, { onDelete: 'cascade' }).notNull(),
+  dayOfWeek: text('day_of_week', { enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] }).notNull(),
+  mealType: text('meal_type', { enum: ['breakfast', 'lunch', 'dinner'] }).notNull(),
+  title: text('title').notNull(),
+  notes: text('notes'),
+  recipeId: uuid('recipe_id').references(() => recipes.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const homeworkTasks = pgTable('homework_tasks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  studentId: uuid('student_id').references(() => students.id, { onDelete: 'cascade' }).notNull(),
+  subjectId: uuid('subject_id').references(() => subjects.id, { onDelete: 'set null' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  dueDate: date('due_date'),
+  completed: boolean('completed').default(false).notNull(),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const recipes = pgTable('recipes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  ingredients: text('ingredients').notNull().default('[]'),
+  instructions: text('instructions'),
+  prepTimeMinutes: integer('prep_time_minutes'),
+  cookTimeMinutes: integer('cook_time_minutes'),
+  servings: integer('servings'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const groceryProducts = pgTable('grocery_products', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  defaultUnit: text('default_unit'),
+  category: text('category'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const groceryLists = pgTable('grocery_lists', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  weekStart: date('week_start').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const groceryListItems = pgTable('grocery_list_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listId: uuid('list_id').references(() => groceryLists.id, { onDelete: 'cascade' }).notNull(),
+  productId: uuid('product_id').references(() => groceryProducts.id, { onDelete: 'set null' }),
+  name: text('name').notNull(),
+  quantity: text('quantity'),
+  note: text('note'),
+  buyOnDiscount: boolean('buy_on_discount').default(false).notNull(),
+  checked: boolean('checked').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Student = typeof students.$inferSelect;
+export type NewStudent = typeof students.$inferInsert;
+export type Subject = typeof subjects.$inferSelect;
+export type NewSubject = typeof subjects.$inferInsert;
+export type MealPlan = typeof mealPlans.$inferSelect;
+export type NewMealPlan = typeof mealPlans.$inferInsert;
+export type Meal = typeof meals.$inferSelect;
+export type NewMeal = typeof meals.$inferInsert;
+export type HomeworkTask = typeof homeworkTasks.$inferSelect;
+export type NewHomeworkTask = typeof homeworkTasks.$inferInsert;
+export type Recipe = typeof recipes.$inferSelect;
+export type NewRecipe = typeof recipes.$inferInsert;
+export type GroceryProduct = typeof groceryProducts.$inferSelect;
+export type GroceryList = typeof groceryLists.$inferSelect;
+export type GroceryListItem = typeof groceryListItems.$inferSelect;

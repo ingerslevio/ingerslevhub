@@ -1,0 +1,178 @@
+import axios from 'axios'
+import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct } from '@/types'
+
+const client = axios.create({
+  baseURL: '',
+  withCredentials: true,
+})
+
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
+export interface AddMealInput {
+  dayOfWeek: Meal['dayOfWeek']
+  mealType: Meal['mealType']
+  title: string
+  notes?: string
+}
+
+export interface UpdateMealInput {
+  title?: string
+  notes?: string
+}
+
+export interface CreateTaskInput {
+  studentId: string
+  subjectId?: string
+  title: string
+  description?: string
+  dueDate?: string
+}
+
+export interface UpdateTaskInput {
+  title?: string
+  description?: string
+  dueDate?: string
+  completed?: boolean
+  subjectId?: string
+}
+
+export interface CreateEventInput {
+  title: string
+  description?: string
+  start: string
+  end: string
+}
+
+export interface UpdateEventInput {
+  title?: string
+  description?: string
+  start?: string
+  end?: string
+}
+
+export const api = {
+  auth: {
+    async me(): Promise<User> {
+      const { data } = await client.get('/api/auth/me')
+      return data
+    },
+    async logout(): Promise<void> {
+      await client.post('/api/auth/logout')
+    },
+  },
+  meals: {
+    async getWeek(date: string): Promise<MealPlan> {
+      const { data } = await client.get('/api/meals/week', { params: { date } })
+      return data
+    },
+    async add(input: AddMealInput): Promise<Meal> {
+      const { data } = await client.post('/api/meals', input)
+      return data
+    },
+    async update(id: string, input: UpdateMealInput): Promise<Meal> {
+      const { data } = await client.put(`/api/meals/${id}`, input)
+      return data
+    },
+    async delete(id: string): Promise<void> {
+      await client.delete(`/api/meals/${id}`)
+    },
+  },
+  homework: {
+    async list(params?: { student?: string; completed?: boolean }): Promise<HomeworkTask[]> {
+      const { data } = await client.get('/api/homework', { params })
+      return data
+    },
+    async create(input: CreateTaskInput): Promise<HomeworkTask> {
+      const { data } = await client.post('/api/homework', input)
+      return data
+    },
+    async update(id: string, input: UpdateTaskInput): Promise<HomeworkTask> {
+      const { data } = await client.put(`/api/homework/${id}`, input)
+      return data
+    },
+    async delete(id: string): Promise<void> {
+      await client.delete(`/api/homework/${id}`)
+    },
+    async getStudents(): Promise<Student[]> {
+      const { data } = await client.get('/api/homework/students')
+      return data
+    },
+    async createStudent(input: { name: string; grade?: string; color?: string }): Promise<Student> {
+      const { data } = await client.post('/api/homework/students', input)
+      return data
+    },
+  },
+  calendar: {
+    async getEvents(start: string, end: string): Promise<CalendarEvent[]> {
+      const { data } = await client.get('/api/calendar/events', { params: { start, end } })
+      return data
+    },
+    async createEvent(input: CreateEventInput): Promise<CalendarEvent> {
+      const { data } = await client.post('/api/calendar/events', input)
+      return data
+    },
+    async updateEvent(id: string, input: UpdateEventInput): Promise<CalendarEvent> {
+      const { data } = await client.put(`/api/calendar/events/${id}`, input)
+      return data
+    },
+    async deleteEvent(id: string): Promise<void> {
+      await client.delete(`/api/calendar/events/${id}`)
+    },
+    async listCalendars(): Promise<unknown[]> {
+      const { data } = await client.get('/api/calendar/calendars')
+      return data
+    },
+    async selectCalendar(calendarId: string): Promise<void> {
+      await client.put('/api/calendar/calendars/select', { calendarId })
+    },
+  },
+  recipes: {
+    async list(): Promise<Recipe[]> {
+      const { data } = await client.get('/api/recipes')
+      return data
+    },
+    async create(input: { name: string; description?: string; ingredients?: string; instructions?: string; prepTimeMinutes?: number; cookTimeMinutes?: number; servings?: number }): Promise<Recipe> {
+      const { data } = await client.post('/api/recipes', input)
+      return data
+    },
+    async update(id: string, input: Partial<{ name: string; description: string; ingredients: string; instructions: string; prepTimeMinutes: number; cookTimeMinutes: number; servings: number }>): Promise<Recipe> {
+      const { data } = await client.put(`/api/recipes/${id}`, input)
+      return data
+    },
+    async delete(id: string): Promise<void> {
+      await client.delete(`/api/recipes/${id}`)
+    },
+  },
+  groceries: {
+    async getList(weekStart: string): Promise<GroceryList> {
+      const { data } = await client.get('/api/groceries/list', { params: { weekStart } })
+      return data
+    },
+    async addItem(listId: string, input: { name: string; productId?: string; quantity?: string; note?: string; buyOnDiscount?: boolean }): Promise<GroceryListItem> {
+      const { data } = await client.post(`/api/groceries/list/${listId}/items`, input)
+      return data
+    },
+    async updateItem(id: string, input: Partial<{ name: string; quantity: string; note: string; buyOnDiscount: boolean; checked: boolean }>): Promise<GroceryListItem> {
+      const { data } = await client.put(`/api/groceries/items/${id}`, input)
+      return data
+    },
+    async deleteItem(id: string): Promise<void> {
+      await client.delete(`/api/groceries/items/${id}`)
+    },
+    async generateFromMealPlan(listId: string, weekStart: string): Promise<void> {
+      await client.post(`/api/groceries/list/${listId}/generate`, null, { params: { weekStart } })
+    },
+    async searchProducts(q: string): Promise<GroceryProduct[]> {
+      const { data } = await client.get('/api/groceries/products', { params: { q } })
+      return data
+    },
+  },
+}

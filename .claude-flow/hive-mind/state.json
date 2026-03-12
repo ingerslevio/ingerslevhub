@@ -1,0 +1,23 @@
+{
+  "initialized": true,
+  "topology": "mesh",
+  "workers": [
+    "hive-worker-1773304037050-zkah",
+    "hive-worker-1773304040160-vtw0",
+    "hive-worker-1773304065392-8iq5",
+    "hive-worker-1773304523595-mc03",
+    "hive-worker-1773304545818-hpye"
+  ],
+  "consensus": {
+    "pending": [],
+    "history": []
+  },
+  "sharedMemory": {},
+  "createdAt": "2026-03-12T08:26:18.565Z",
+  "updatedAt": "2026-03-12T08:35:45.818Z",
+  "queen": {
+    "agentId": "queen-1773303978565",
+    "electedAt": "2026-03-12T08:26:18.565Z",
+    "term": 1
+  }
+}
