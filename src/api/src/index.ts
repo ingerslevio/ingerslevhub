@@ -12,10 +12,14 @@ import homeworkRoutes from './routes/homework.js';
 import calendarRoutes from './routes/calendar.js';
 import recipesRoutes from './routes/recipes.js';
 import groceriesRoutes from './routes/groceries.js';
+import { runMigrations } from './db/migrate.js';
 
 const app = Fastify({ logger: true });
 
 async function start() {
+  await runMigrations();
+  app.log.info('Migrations complete');
+
   await app.register(fastifyCookie);
   await app.register(corsPlugin);
   await app.register(swaggerPlugin);

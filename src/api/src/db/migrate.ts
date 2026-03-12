@@ -3,7 +3,7 @@ import { config } from '../config.js';
 
 const sql = postgres(config.DATABASE_URL);
 
-async function migrate() {
+export async function runMigrations() {
   console.log('Running migrations...');
 
   await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`;
@@ -134,7 +134,10 @@ async function migrate() {
   await sql.end();
 }
 
-migrate().catch((err) => {
-  console.error('Migration failed:', err);
-  process.exit(1);
-});
+// Allow running directly: tsx src/db/migrate.ts
+if (process.argv[1]?.endsWith('migrate.ts') || process.argv[1]?.endsWith('migrate.js')) {
+  runMigrations().catch((err) => {
+    console.error('Migration failed:', err);
+    process.exit(1);
+  });
+}
