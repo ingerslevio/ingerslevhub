@@ -45,12 +45,20 @@ jobs:
         working-directory: src/api
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:6502/familyhub
+          GOOGLE_CLIENT_ID: ci-placeholder
+          GOOGLE_CLIENT_SECRET: ci-placeholder
+          GOOGLE_REDIRECT_URI: http://localhost:6500/api/auth/google/callback
+          SESSION_SECRET: ci-placeholder-session-secret-32ch
 
       - name: Run tests
         run: npm test
         working-directory: src/api
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:6502/familyhub
+          GOOGLE_CLIENT_ID: ci-placeholder
+          GOOGLE_CLIENT_SECRET: ci-placeholder
+          GOOGLE_REDIRECT_URI: http://localhost:6500/api/auth/google/callback
+          SESSION_SECRET: ci-placeholder-session-secret-32ch
 
   web-build:
     runs-on: ubuntu-latest

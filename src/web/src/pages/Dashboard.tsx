@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/lib/api'
-import type { Meal, HomeworkTask, CalendarEvent } from '@/types'
+import type { Meal } from '@/types'
 
 function SkeletonCard() {
   return (
