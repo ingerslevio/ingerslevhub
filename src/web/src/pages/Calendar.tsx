@@ -77,33 +77,33 @@ export default function Calendar() {
   if (!hasCalendar) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Calendar</h1>
+        <h1 className="text-2xl font-bold">Kalender</h1>
         <Card className="max-w-md mx-auto">
           <CardHeader>
-            <CardTitle className="text-lg">Select a Calendar</CardTitle>
+            <CardTitle className="text-lg">Vaelg en kalender</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Choose a Google Calendar to display events from.
+              Vaelg en Google Kalender at vise begivenheder fra.
             </p>
             {calendarsLoading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Loading calendars...
+                Indlaeser kalendere...
               </div>
             ) : (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="cal-select">Calendar</Label>
+                  <Label htmlFor="cal-select">Kalender</Label>
                   <Select value={selectedCalId} onValueChange={setSelectedCalId}>
                     <SelectTrigger id="cal-select">
-                      <SelectValue placeholder="Choose a calendar" />
+                      <SelectValue placeholder="Vaelg en kalender" />
                     </SelectTrigger>
                     <SelectContent>
                       {calendars.map((cal) => (
                         <SelectItem key={cal.id} value={cal.id}>
                           {cal.summary}
-                          {cal.primary ? ' (Primary)' : ''}
+                          {cal.primary ? ' (Primaer)' : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -119,7 +119,7 @@ export default function Calendar() {
                   {selectCalendarMutation.isPending && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  Use This Calendar
+                  Brug denne kalender
                 </Button>
               </>
             )}
@@ -132,9 +132,9 @@ export default function Calendar() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Calendar</h1>
+        <h1 className="text-2xl font-bold">Kalender</h1>
         <Button variant="outline" size="sm" onClick={goToToday}>
-          Today
+          I dag
         </Button>
       </div>
 
@@ -148,7 +148,7 @@ export default function Calendar() {
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <span className="text-sm font-medium min-w-[180px] text-center">
-          Week of {format(currentWeekStart, 'MMMM d, yyyy')}
+          Uge fra {format(currentWeekStart, 'MMMM d, yyyy')}
         </span>
         <Button
           variant="ghost"

@@ -18,7 +18,7 @@ jobs:
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
         ports:
-          - 5440:5432
+          - 6502:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -44,13 +44,13 @@ jobs:
         run: npm run db:migrate
         working-directory: src/api
         env:
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5440/familyhub
+          DATABASE_URL: postgresql://test_user:test_password@localhost:6502/familyhub
 
       - name: Run tests
         run: npm test
         working-directory: src/api
         env:
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5440/familyhub
+          DATABASE_URL: postgresql://test_user:test_password@localhost:6502/familyhub
 
   web-build:
     runs-on: ubuntu-latest

@@ -19,14 +19,14 @@ export function TaskList({
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
         <ClipboardList className="h-12 w-12 mb-3" />
-        <p className="text-lg font-medium">No tasks</p>
-        <p className="text-sm">Add a task to get started</p>
+        <p className="text-lg font-medium">Ingen opgaver</p>
+        <p className="text-sm">Tilfoej en opgave for at komme i gang</p>
       </div>
     )
   }
 
   const grouped = tasks.reduce<Record<string, HomeworkTask[]>>((acc, task) => {
-    const studentName = task.student?.name ?? 'Unknown Student'
+    const studentName = task.student?.name ?? 'Ukendt elev'
     if (!acc[studentName]) acc[studentName] = []
     acc[studentName].push(task)
     return acc

@@ -66,14 +66,14 @@ export function AddTaskDrawer({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Homework Task</DialogTitle>
+          <DialogTitle>Tilfoej lektieopgave</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="student">Student</Label>
+            <Label htmlFor="student">Elev</Label>
             <Select value={studentId} onValueChange={setStudentId}>
               <SelectTrigger id="student">
-                <SelectValue placeholder="Select a student" />
+                <SelectValue placeholder="Vaelg en elev" />
               </SelectTrigger>
               <SelectContent>
                 {students.map((s) => (
@@ -91,27 +91,27 @@ export function AddTaskDrawer({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="task-title">Title</Label>
+            <Label htmlFor="task-title">Titel</Label>
             <Input
               id="task-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Math worksheet page 42"
+              placeholder="f.eks. Matematik side 42"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="task-description">Description (optional)</Label>
+            <Label htmlFor="task-description">Beskrivelse (valgfrit)</Label>
             <Textarea
               id="task-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Additional details..."
+              placeholder="Yderligere detaljer..."
               rows={3}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="due-date">Due Date (optional)</Label>
+            <Label htmlFor="due-date">Afleveringsdato (valgfrit)</Label>
             <Input
               id="due-date"
               type="date"
@@ -121,14 +121,14 @@ export function AddTaskDrawer({
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+              Annuller
             </Button>
             <Button
               type="submit"
               disabled={loading || !studentId || !title.trim()}
             >
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Add Task
+              Tilfoej opgave
             </Button>
           </div>
         </form>

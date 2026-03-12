@@ -70,7 +70,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <h1 className="text-2xl font-bold">Oversigt</h1>
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* Today's Meals */}
@@ -81,7 +81,7 @@ export default function Dashboard() {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <UtensilsCrossed className="h-4 w-4" />
-                Today's Meals
+                Dagens madplan
               </CardTitle>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/meals">
@@ -92,7 +92,7 @@ export default function Dashboard() {
             <CardContent>
               {todayMeals.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No meals planned for today
+                  Ingen madplan for i dag
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -118,7 +118,7 @@ export default function Dashboard() {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <BookOpen className="h-4 w-4" />
-                Upcoming Homework
+                Kommende lektier
               </CardTitle>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/homework">
@@ -129,7 +129,7 @@ export default function Dashboard() {
             <CardContent>
               {upcomingTasks.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No upcoming homework
+                  Ingen kommende lektier
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -148,7 +148,7 @@ export default function Dashboard() {
                   ))}
                   {upcomingTasks.length > 5 && (
                     <p className="text-xs text-muted-foreground">
-                      +{upcomingTasks.length - 5} more
+                      +{upcomingTasks.length - 5} flere
                     </p>
                   )}
                 </div>
@@ -165,7 +165,7 @@ export default function Dashboard() {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <CalendarDays className="h-4 w-4" />
-                Today's Events
+                Dagens begivenheder
               </CardTitle>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/calendar">
@@ -176,7 +176,7 @@ export default function Dashboard() {
             <CardContent>
               {todayEvents.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No events today
+                  Ingen begivenheder i dag
                 </p>
               ) : (
                 <div className="space-y-2">

@@ -21,6 +21,7 @@ export interface AddMealInput {
   mealType: Meal['mealType']
   title: string
   notes?: string
+  mealPlanId?: string
 }
 
 export interface UpdateMealInput {

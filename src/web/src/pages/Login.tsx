@@ -8,12 +8,12 @@ export default function Login() {
         <CardHeader className="text-center space-y-2 pb-2">
           <h1 className="text-3xl font-bold tracking-tight">Family Hub</h1>
           <p className="text-sm text-muted-foreground">
-            Manage meals, homework, and family schedule in one place
+            Styr madplan, lektier og familiekalender samlet
           </p>
         </CardHeader>
         <CardContent className="pt-4">
           <Button asChild className="w-full" size="lg">
-            <a href="/api/auth/google">Sign in with Google</a>
+            <a href="/api/auth/google">Log ind med Google</a>
           </Button>
         </CardContent>
       </Card>

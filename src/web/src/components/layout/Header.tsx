@@ -25,7 +25,7 @@ export default function Header({ title, user }: HeaderProps) {
             <AvatarImage src={user.avatarUrl} alt={user.name} />
             <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
-          <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Logout">
+          <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log ud">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>

@@ -9,6 +9,7 @@ const Dashboard = React.lazy(() => import('./pages/Dashboard'))
 const MealPlan = React.lazy(() => import('./pages/MealPlan'))
 const Homework = React.lazy(() => import('./pages/Homework'))
 const Calendar = React.lazy(() => import('./pages/Calendar'))
+const Groceries = React.lazy(() => import('./pages/Groceries'))
 const Login = React.lazy(() => import('./pages/Login'))
 
 const queryClient = new QueryClient({
@@ -36,7 +37,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">Indlaeser...</div>
       </div>
     )
   }
@@ -54,10 +55,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 const pageTitles: Record<string, string> = {
-  '/': 'Dashboard',
-  '/meals': 'Meal Plan',
-  '/homework': 'Homework',
-  '/calendar': 'Calendar',
+  '/': 'Oversigt',
+  '/meals': 'Madplan',
+  '/homework': 'Lektier',
+  '/calendar': 'Kalender',
+  '/groceries': 'Indkobsliste',
 }
 
 function AuthenticatedRoutes() {
@@ -76,7 +78,7 @@ function AuthenticatedRoutes() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">Indlaeser...</div>
       </div>
     )
   }
@@ -89,12 +91,13 @@ function AuthenticatedRoutes() {
 
   return (
     <Shell title={title} user={user}>
-      <Suspense fallback={<div className="text-muted-foreground">Loading...</div>}>
+      <Suspense fallback={<div className="text-muted-foreground">Indlaeser...</div>}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/meals" element={<MealPlan />} />
           <Route path="/homework" element={<Homework />} />
           <Route path="/calendar" element={<Calendar />} />
+          <Route path="/groceries" element={<Groceries />} />
         </Routes>
       </Suspense>
     </Shell>
@@ -104,7 +107,7 @@ function AuthenticatedRoutes() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="text-muted-foreground">Loading...</div></div>}>
+      <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="text-muted-foreground">Indlaeser...</div></div>}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/*" element={<AuthenticatedRoutes />} />

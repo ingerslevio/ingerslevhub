@@ -14,21 +14,21 @@ const DAYS = [
 ] as const
 
 const DAY_LABELS: Record<string, string> = {
-  monday: 'Mon',
-  tuesday: 'Tue',
-  wednesday: 'Wed',
-  thursday: 'Thu',
-  friday: 'Fri',
-  saturday: 'Sat',
-  sunday: 'Sun',
+  monday: 'Man',
+  tuesday: 'Tir',
+  wednesday: 'Ons',
+  thursday: 'Tor',
+  friday: 'Fre',
+  saturday: 'Lor',
+  sunday: 'Son',
 }
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'] as const
 
 const MEAL_TYPE_LABELS: Record<string, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
+  breakfast: 'Morgenmad',
+  lunch: 'Frokost',
+  dinner: 'Aftensmad',
 }
 
 interface WeeklyGridProps {
@@ -95,7 +95,7 @@ export function WeeklyGrid({
                     onClick={() => onAddMeal(day, mealType)}
                   >
                     <Plus className="h-3 w-3 mr-1" />
-                    Add
+                    Tilfoej
                   </Button>
                 </div>
               )

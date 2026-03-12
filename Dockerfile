@@ -21,5 +21,5 @@ COPY --from=api-builder /app/api/dist ./dist
 COPY --from=api-builder /app/api/node_modules ./node_modules
 COPY --from=web-builder /app/web/dist ./public
 ENV NODE_ENV=production
-EXPOSE 3001
+EXPOSE 6500
 CMD ["node", "dist/index.js"]

@@ -58,10 +58,10 @@ export default function Homework() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Homework</h1>
+        <h1 className="text-2xl font-bold">Lektier</h1>
         <Button onClick={() => setDrawerOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Task
+          Tilfoej opgave
         </Button>
       </div>
 
@@ -69,14 +69,14 @@ export default function Homework() {
       <div className="flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <Label htmlFor="student-filter" className="text-sm whitespace-nowrap">
-            Student:
+            Elev:
           </Label>
           <Select value={selectedStudent} onValueChange={setSelectedStudent}>
             <SelectTrigger id="student-filter" className="w-[160px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Students</SelectItem>
+              <SelectItem value="all">Alle elever</SelectItem>
               {students.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
                   <div className="flex items-center gap-2">
@@ -98,7 +98,7 @@ export default function Homework() {
             onCheckedChange={(checked) => setShowCompleted(checked === true)}
           />
           <Label htmlFor="show-completed" className="text-sm">
-            Show completed
+            Vis afsluttede
           </Label>
         </div>
       </div>
