@@ -59,3 +59,47 @@ export async function verifyToken(accessToken: string): Promise<{ valid: boolean
     return { valid: false };
   }
 }
+
+const AULA_CLIENT_ID = '_99949a54b8b65423862aac1bf629599ed64231607a';
+
+export function buildAuthUrl(redirectUri: string, codeChallenge: string, state: string): string {
+  const params = new URLSearchParams({
+    client_id: AULA_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'aula-sensitive',
+    state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
+  });
+  return `https://login.aula.dk/simplesaml/module.php/oidc/authorize.php?${params.toString()}`;
+}
+
+export async function exchangeCode(
+  code: string,
+  codeVerifier: string,
+  redirectUri: string,
+): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: Date | null }> {
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    client_id: AULA_CLIENT_ID,
+    redirect_uri: redirectUri,
+    code_verifier: codeVerifier,
+  });
+  const res = await fetch('https://login.aula.dk/simplesaml/module.php/oidc/token.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Aula token exchange failed: ${res.status} ${text}`);
+  }
+  const data = await res.json() as { access_token: string; refresh_token?: string; expires_in?: number };
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token ?? null,
+    expiresAt: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : null,
+  };
+}
