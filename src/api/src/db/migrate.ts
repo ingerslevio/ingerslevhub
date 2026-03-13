@@ -130,6 +130,28 @@ export async function runMigrations() {
     )
   `;
 
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS selected_calendar_ids TEXT NOT NULL DEFAULT '[]'`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS grocery_categories (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      color TEXT NOT NULL DEFAULT '#6366f1',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`ALTER TABLE grocery_products ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES grocery_categories(id) ON DELETE SET NULL`;
+  await sql`ALTER TABLE grocery_products ADD COLUMN IF NOT EXISTS last_bought_at TIMESTAMP`;
+
+  await sql`ALTER TABLE grocery_list_items ADD COLUMN IF NOT EXISTS checked_at TIMESTAMP`;
+
+  await sql`ALTER TABLE grocery_lists ALTER COLUMN week_start DROP NOT NULL`;
+
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS grocery_lists_active_uniq ON grocery_lists(user_id) WHERE week_start IS NULL`;
+
   console.log('Migrations complete.');
   await sql.end();
 }

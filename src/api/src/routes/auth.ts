@@ -16,7 +16,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { code, error } = request.query;
       if (error || !code) {
-        return reply.redirect(`${config.FRONTEND_URL}?error=auth_failed`);
+        return reply.redirect(`${config.FRONTEND_URL || '/'}?error=auth_failed`);
       }
 
       try {
@@ -65,10 +65,10 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
           maxAge: 60 * 60 * 24 * 7,
         });
 
-        return reply.redirect(config.FRONTEND_URL);
+        return reply.redirect(config.FRONTEND_URL || '/');
       } catch (err) {
         fastify.log.error(err, 'OAuth callback failed');
-        return reply.redirect(`${config.FRONTEND_URL}?error=auth_failed`);
+        return reply.redirect(`${config.FRONTEND_URL || '/'}?error=auth_failed`);
       }
     },
   );

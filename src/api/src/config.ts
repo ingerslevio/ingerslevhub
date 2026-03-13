@@ -15,7 +15,7 @@ export const config = {
   GOOGLE_REDIRECT_URI: requireEnv('GOOGLE_REDIRECT_URI'),
   SESSION_SECRET: requireEnv('SESSION_SECRET'),
   API_PORT: parseInt(process.env['API_PORT'] ?? '6500', 10),
-  FRONTEND_URL: process.env['FRONTEND_URL'] ?? 'http://localhost:5173',
+  FRONTEND_URL: process.env['FRONTEND_URL'] ?? (process.env['NODE_ENV'] === 'production' ? '' : 'http://localhost:5173'),
 } as const;
 
 export type Config = typeof config;

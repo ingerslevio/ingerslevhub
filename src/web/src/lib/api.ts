@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct } from '@/types'
+import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory } from '@/types'
 
 const client = axios.create({
   baseURL: '',
@@ -134,6 +134,9 @@ export const api = {
     async selectCalendar(calendarId: string): Promise<void> {
       await client.put('/api/calendar/calendars/select', { calendarId })
     },
+    async selectCalendars(calendarIds: string[]): Promise<void> {
+      await client.put('/api/calendar/calendars/select', { calendarIds })
+    },
   },
   recipes: {
     async list(): Promise<Recipe[]> {
@@ -153,26 +156,41 @@ export const api = {
     },
   },
   groceries: {
-    async getList(weekStart: string): Promise<GroceryList> {
-      const { data } = await client.get('/api/groceries/list', { params: { weekStart } })
+    async getList(): Promise<GroceryList> {
+      const { data } = await client.get('/api/groceries/list')
       return data
     },
-    async addItem(listId: string, input: { name: string; productId?: string; quantity?: string; note?: string; buyOnDiscount?: boolean }): Promise<GroceryListItem> {
-      const { data } = await client.post(`/api/groceries/list/${listId}/items`, input)
+    async addItem(_listId: string, input: { name: string; productId?: string; quantity?: string; note?: string; buyOnDiscount?: boolean }): Promise<GroceryListItem> {
+      const { data } = await client.post('/api/groceries/list/items', input)
       return data
     },
-    async updateItem(id: string, input: Partial<{ name: string; quantity: string; note: string; buyOnDiscount: boolean; checked: boolean }>): Promise<GroceryListItem> {
+    async updateItem(id: string, input: Partial<{ quantity: string; note: string; buyOnDiscount: boolean; checked: boolean }>): Promise<GroceryListItem> {
       const { data } = await client.put(`/api/groceries/items/${id}`, input)
       return data
     },
     async deleteItem(id: string): Promise<void> {
       await client.delete(`/api/groceries/items/${id}`)
     },
-    async generateFromMealPlan(listId: string, weekStart: string): Promise<void> {
-      await client.post(`/api/groceries/list/${listId}/generate`, null, { params: { weekStart } })
+    async clearBought(): Promise<void> {
+      await client.delete('/api/groceries/list/clear-bought')
+    },
+    async generateFromMealPlan(): Promise<void> {
+      await client.post('/api/groceries/list/generate')
     },
     async searchProducts(q: string): Promise<GroceryProduct[]> {
       const { data } = await client.get('/api/groceries/products', { params: { q } })
+      return data
+    },
+    async listCategories(): Promise<GroceryCategory[]> {
+      const { data } = await client.get('/api/groceries/categories')
+      return data
+    },
+    async createCategory(input: { name: string; color?: string }): Promise<GroceryCategory> {
+      const { data } = await client.post('/api/groceries/categories', input)
+      return data
+    },
+    async updateCategory(id: string, input: Partial<{ name: string; sortOrder: number; color: string }>): Promise<GroceryCategory> {
+      const { data } = await client.patch(`/api/groceries/categories/${id}`, input)
       return data
     },
   },

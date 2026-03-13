@@ -20,7 +20,7 @@ const updateEventSchema = z.object({
 });
 
 const selectCalendarSchema = z.object({
-  calendarId: z.string().min(1),
+  calendarIds: z.array(z.string().min(1)).min(1),
 });
 
 const calendarRoutes: FastifyPluginAsync = async (fastify) => {
@@ -37,10 +37,35 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
       if (!user.accessToken) {
         return reply.status(401).send({ error: 'No access token. Please re-authenticate with Google.' });
       }
-      if (!user.selectedCalendarId) {
+
+      const tokenCtx = user.refreshToken
+        ? { userId: user.id, refreshToken: user.refreshToken }
+        : undefined;
+
+      let calendarIds: string[] = [];
+      try {
+        const parsed = JSON.parse(user.selectedCalendarIds ?? '[]');
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          calendarIds = parsed as string[];
+        }
+      } catch { /* fallback below */ }
+
+      if (calendarIds.length === 0 && user.selectedCalendarId) {
+        calendarIds = [user.selectedCalendarId];
+      }
+
+      if (calendarIds.length === 0) {
         return reply.status(400).send({ error: 'No calendar selected. Use PUT /calendars/select first.' });
       }
-      return calendarService.listEvents(user.accessToken, user.selectedCalendarId, start, end);
+
+      const results = await Promise.all(
+        calendarIds.map((calId) =>
+          calendarService.listEvents(user.accessToken!, calId, start, end, tokenCtx),
+        ),
+      );
+
+      const merged = results.flat().sort((a, b) => a.start.localeCompare(b.start));
+      return merged;
     },
   );
 
@@ -56,10 +81,14 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
     if (!user.selectedCalendarId) {
       return reply.status(400).send({ error: 'No calendar selected.' });
     }
+    const tokenCtx = user.refreshToken
+      ? { userId: user.id, refreshToken: user.refreshToken }
+      : undefined;
     const event = await calendarService.createEvent(
       user.accessToken,
       user.selectedCalendarId,
       parsed.data,
+      tokenCtx,
     );
     return reply.status(201).send(event);
   });
@@ -76,11 +105,15 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
     if (!user.selectedCalendarId) {
       return reply.status(400).send({ error: 'No calendar selected.' });
     }
+    const tokenCtx = user.refreshToken
+      ? { userId: user.id, refreshToken: user.refreshToken }
+      : undefined;
     const event = await calendarService.updateEvent(
       user.accessToken,
       user.selectedCalendarId,
       request.params.id,
       parsed.data,
+      tokenCtx,
     );
     return event;
   });
@@ -93,10 +126,14 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
     if (!user.selectedCalendarId) {
       return reply.status(400).send({ error: 'No calendar selected.' });
     }
+    const tokenCtx = user.refreshToken
+      ? { userId: user.id, refreshToken: user.refreshToken }
+      : undefined;
     await calendarService.deleteEvent(
       user.accessToken,
       user.selectedCalendarId,
       request.params.id,
+      tokenCtx,
     );
     return reply.status(204).send();
   });
@@ -106,7 +143,10 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
     if (!user.accessToken) {
       return reply.status(401).send({ error: 'No access token.' });
     }
-    return calendarService.listCalendars(user.accessToken);
+    const tokenCtx = user.refreshToken
+      ? { userId: user.id, refreshToken: user.refreshToken }
+      : undefined;
+    return calendarService.listCalendars(user.accessToken, tokenCtx);
   });
 
   fastify.put('/calendars/select', async (request, reply) => {
@@ -115,11 +155,16 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
     if (!parsed.success) {
       return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
     }
+    const { calendarIds } = parsed.data;
+    const primaryCalendarId = calendarIds[0] ?? null;
     await db
       .update(users)
-      .set({ selectedCalendarId: parsed.data.calendarId })
+      .set({
+        selectedCalendarId: primaryCalendarId,
+        selectedCalendarIds: JSON.stringify(calendarIds),
+      })
       .where(eq(users.id, userId));
-    return { ok: true, selectedCalendarId: parsed.data.calendarId };
+    return { ok: true, selectedCalendarId: primaryCalendarId, selectedCalendarIds: calendarIds };
   });
 };
 

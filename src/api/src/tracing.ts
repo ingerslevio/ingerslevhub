@@ -3,6 +3,8 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { BatchSpanProcessor, ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-node';
+import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 
 // Export slow requests (>=50ms) always, sample 1% of fast requests
 class AdaptiveSamplingProcessor extends BatchSpanProcessor {
@@ -31,6 +33,14 @@ const sdk = new NodeSDK({
       '@opentelemetry/instrumentation-fs': { enabled: false },
     }),
   ],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metricReader: process.env.OTEL_EXPORTER_OTLP_ENDPOINT
+    ? (new PeriodicExportingMetricReader({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        exporter: new OTLPMetricExporter() as any,
+        exportIntervalMillis: 30_000,
+      }) as any)
+    : undefined,
 });
 
 sdk.start();

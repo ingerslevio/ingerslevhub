@@ -4,6 +4,7 @@ export interface User {
   name: string
   avatarUrl?: string
   selectedCalendarId?: string
+  selectedCalendarIds?: string
 }
 
 export interface Student {
@@ -72,18 +73,27 @@ export interface Recipe {
   createdAt: string
 }
 
+export interface GroceryCategory {
+  id: string
+  userId: string
+  name: string
+  sortOrder: number
+  color: string
+}
+
 export interface GroceryProduct {
   id: string
   userId: string
   name: string
   defaultUnit?: string
-  category?: string
+  category?: GroceryCategory | null
+  categoryId?: string
+  lastBoughtAt?: string
 }
 
 export interface GroceryList {
   id: string
   userId: string
-  weekStart: string
   items: GroceryListItem[]
 }
 
@@ -96,4 +106,6 @@ export interface GroceryListItem {
   note?: string
   buyOnDiscount: boolean
   checked: boolean
+  createdAt: string
+  checkedAt?: string
 }

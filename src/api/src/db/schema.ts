@@ -9,6 +9,7 @@ export const users = pgTable('users', {
   avatarUrl: text('avatar_url'),
   apiKey: uuid('api_key').default(sql`gen_random_uuid()`).notNull(),
   selectedCalendarId: text('selected_calendar_id'),
+  selectedCalendarIds: text('selected_calendar_ids').default('[]').notNull(),
   accessToken: text('access_token'),
   refreshToken: text('refresh_token'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -74,19 +75,30 @@ export const recipes = pgTable('recipes', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const groceryCategories = pgTable('grocery_categories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  color: text('color').default('#6366f1').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const groceryProducts = pgTable('grocery_products', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   name: text('name').notNull(),
   defaultUnit: text('default_unit'),
   category: text('category'),
+  categoryId: uuid('category_id').references(() => groceryCategories.id, { onDelete: 'set null' }),
+  lastBoughtAt: timestamp('last_bought_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const groceryLists = pgTable('grocery_lists', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  weekStart: date('week_start').notNull(),
+  weekStart: date('week_start'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -99,6 +111,7 @@ export const groceryListItems = pgTable('grocery_list_items', {
   note: text('note'),
   buyOnDiscount: boolean('buy_on_discount').default(false).notNull(),
   checked: boolean('checked').default(false).notNull(),
+  checkedAt: timestamp('checked_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -116,6 +129,9 @@ export type HomeworkTask = typeof homeworkTasks.$inferSelect;
 export type NewHomeworkTask = typeof homeworkTasks.$inferInsert;
 export type Recipe = typeof recipes.$inferSelect;
 export type NewRecipe = typeof recipes.$inferInsert;
+export type GroceryCategory = typeof groceryCategories.$inferSelect;
+export type NewGroceryCategory = typeof groceryCategories.$inferInsert;
 export type GroceryProduct = typeof groceryProducts.$inferSelect;
+export type NewGroceryProduct = typeof groceryProducts.$inferInsert;
 export type GroceryList = typeof groceryLists.$inferSelect;
 export type GroceryListItem = typeof groceryListItems.$inferSelect;

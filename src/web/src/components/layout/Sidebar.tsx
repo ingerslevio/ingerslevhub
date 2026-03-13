@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, UtensilsCrossed, BookOpen, CalendarDays, ShoppingCart } from 'lucide-react'
+import { Home, UtensilsCrossed, BookOpen, CalendarDays, ShoppingCart, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { User } from '@/types'
@@ -14,13 +14,23 @@ const navItems = [
 
 interface SidebarProps {
   user: User | null
+  onClose?: () => void
 }
 
-export default function Sidebar({ user }: SidebarProps) {
+export default function Sidebar({ user, onClose }: SidebarProps) {
   return (
     <aside className="flex h-full w-64 flex-col border-r bg-card">
-      <div className="flex h-14 items-center border-b px-6">
+      <div className="flex h-14 items-center justify-between border-b px-6">
         <h1 className="text-lg font-semibold">Family Hub</h1>
+        {onClose && (
+          <button
+            className="p-1 rounded-md hover:bg-accent"
+            onClick={onClose}
+            aria-label="Luk menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map(({ to, label, icon: Icon }) => (

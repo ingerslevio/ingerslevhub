@@ -7,16 +7,10 @@ import {
   subWeeks,
   addDays,
 } from 'date-fns'
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { CalendarView } from '@/components/calendar/CalendarView'
 import { api } from '@/lib/api'
@@ -33,100 +27,78 @@ export default function Calendar() {
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
-  const [selectedCalId, setSelectedCalId] = useState<string>('')
+  const [selectedCalIds, setSelectedCalIds] = useState<string[]>([])
+  const [savedCalIds, setSavedCalIds] = useState<string[]>([])
+  const [calAuthError, setCalAuthError] = useState(false)
 
   const weekStartStr = format(currentWeekStart, 'yyyy-MM-dd')
   const weekEndStr = format(addDays(currentWeekStart, 7), 'yyyy-MM-dd')
 
   const { data: user } = useQuery({
     queryKey: ['user'],
-    queryFn: () => api.auth.me(),
+    queryFn: async () => {
+      const u = await api.auth.me()
+      if (u.selectedCalendarIds) {
+        const ids = u.selectedCalendarIds.split(',').filter(Boolean)
+        setSavedCalIds(ids)
+        setSelectedCalIds(ids)
+      } else if (u.selectedCalendarId) {
+        setSavedCalIds([u.selectedCalendarId])
+        setSelectedCalIds([u.selectedCalendarId])
+      }
+      return u
+    },
   })
+  // user is read to ensure the query runs; calendar IDs are extracted in queryFn
+  void user
 
-  const hasCalendar = !!user?.selectedCalendarId
+  const hasCalendars = savedCalIds.length > 0
 
-  const { data: events = [], isLoading: eventsLoading } = useQuery<
-    CalendarEvent[]
-  >({
-    queryKey: ['calendar', weekStartStr],
+  const { data: events = [], isLoading: eventsLoading } = useQuery<CalendarEvent[]>({
+    queryKey: ['calendar', weekStartStr, savedCalIds.join(',')],
     queryFn: () => api.calendar.getEvents(weekStartStr, weekEndStr),
-    enabled: hasCalendar,
+    enabled: hasCalendars,
   })
 
-  const { data: calendars = [], isLoading: calendarsLoading } = useQuery<
-    GoogleCalendar[]
-  >({
+  const {
+    data: calendars = [],
+    isLoading: calendarsLoading,
+    isError: calendarsError,
+  } = useQuery<GoogleCalendar[]>({
     queryKey: ['calendars'],
-    queryFn: () => api.calendar.listCalendars() as Promise<GoogleCalendar[]>,
-    enabled: !hasCalendar,
+    queryFn: async () => {
+      try {
+        const result = await api.calendar.listCalendars() as GoogleCalendar[]
+        setCalAuthError(false)
+        return result
+      } catch (err: unknown) {
+        const axiosError = err as { response?: { status?: number } }
+        if (axiosError?.response?.status === 401) {
+          setCalAuthError(true)
+        }
+        throw err
+      }
+    },
+    retry: false,
   })
 
-  const selectCalendarMutation = useMutation({
-    mutationFn: (calendarId: string) =>
-      api.calendar.selectCalendar(calendarId),
-    onSuccess: () => {
+  const selectCalendarsMutation = useMutation({
+    mutationFn: (ids: string[]) => api.calendar.selectCalendars(ids),
+    onSuccess: (_, ids) => {
+      setSavedCalIds(ids)
       queryClient.invalidateQueries({ queryKey: ['user'] })
       queryClient.invalidateQueries({ queryKey: ['calendar'] })
     },
   })
 
-  const goToToday = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))
+  const toggleCalendar = (id: string) => {
+    setSelectedCalIds(prev =>
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    )
   }
 
-  if (!hasCalendar) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Kalender</h1>
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle className="text-lg">Vaelg en kalender</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Vaelg en Google Kalender at vise begivenheder fra.
-            </p>
-            {calendarsLoading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Indlaeser kalendere...
-              </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="cal-select">Kalender</Label>
-                  <Select value={selectedCalId} onValueChange={setSelectedCalId}>
-                    <SelectTrigger id="cal-select">
-                      <SelectValue placeholder="Vaelg en kalender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {calendars.map((cal) => (
-                        <SelectItem key={cal.id} value={cal.id}>
-                          {cal.summary}
-                          {cal.primary ? ' (Primaer)' : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  className="w-full"
-                  disabled={
-                    !selectedCalId || selectCalendarMutation.isPending
-                  }
-                  onClick={() => selectCalendarMutation.mutate(selectedCalId)}
-                >
-                  {selectCalendarMutation.isPending && (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  )}
-                  Brug denne kalender
-                </Button>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    )
+  const goToToday = () => {
+    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))
   }
 
   return (
@@ -138,12 +110,90 @@ export default function Calendar() {
         </Button>
       </div>
 
+      {/* Calendar selector panel */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Vaelg kalendere</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {calAuthError ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Din Google Kalender-forbindelse er udloebet.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { window.location.href = '/api/auth/google' }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Tilslut Google Kalender igen
+              </Button>
+            </div>
+          ) : calendarsLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Indlaeser kalendere...
+            </div>
+          ) : calendarsError && !calAuthError ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Kunne ikke indlaeser dine Google Kalendere.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { window.location.href = '/api/auth/google' }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Tilslut Google Kalender igen
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                {calendars.map(cal => (
+                  <div key={cal.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`cal-${cal.id}`}
+                      checked={selectedCalIds.includes(cal.id)}
+                      onCheckedChange={() => toggleCalendar(cal.id)}
+                    />
+                    <Label htmlFor={`cal-${cal.id}`} className="text-sm cursor-pointer">
+                      {cal.summary}
+                      {cal.primary && (
+                        <span className="ml-1 text-xs text-muted-foreground">(Primaer)</span>
+                      )}
+                    </Label>
+                  </div>
+                ))}
+                {calendars.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Ingen kalendere fundet.</p>
+                )}
+              </div>
+              {calendars.length > 0 && (
+                <Button
+                  size="sm"
+                  disabled={selectedCalIds.length === 0 || selectCalendarsMutation.isPending}
+                  onClick={() => selectCalendarsMutation.mutate(selectedCalIds)}
+                >
+                  {selectCalendarsMutation.isPending && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
+                  Brug valgte kalendere
+                </Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Week navigation */}
       <div className="flex items-center justify-center gap-4">
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCurrentWeekStart((d) => subWeeks(d, 1))}
+          onClick={() => setCurrentWeekStart(d => subWeeks(d, 1))}
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -153,11 +203,17 @@ export default function Calendar() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCurrentWeekStart((d) => addWeeks(d, 1))}
+          onClick={() => setCurrentWeekStart(d => addWeeks(d, 1))}
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
+
+      {!hasCalendars && !eventsLoading && (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          Vaelg en eller flere kalendere ovenfor for at vise begivenheder.
+        </p>
+      )}
 
       {eventsLoading ? (
         <div className="grid grid-cols-7 gap-2">
@@ -165,9 +221,9 @@ export default function Calendar() {
             <div key={i} className="h-32 bg-muted animate-pulse rounded" />
           ))}
         </div>
-      ) : (
+      ) : hasCalendars ? (
         <CalendarView events={events} currentWeekStart={currentWeekStart} />
-      )}
+      ) : null}
     </div>
   )
 }
