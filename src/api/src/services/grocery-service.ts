@@ -25,12 +25,13 @@ export type EnrichedGroceryListItem = GroceryListItem & {
 };
 
 export async function getOrCreateActiveList(
-  userId: string,
+  familyId: string,
+  userId?: string,
 ): Promise<GroceryList & { items: EnrichedGroceryListItem[] }> {
   const existing = await db
     .select()
     .from(groceryLists)
-    .where(and(eq(groceryLists.userId, userId), isNull(groceryLists.weekStart)))
+    .where(and(eq(groceryLists.familyId, familyId), isNull(groceryLists.weekStart)))
     .limit(1);
 
   let list: GroceryList;
@@ -39,7 +40,7 @@ export async function getOrCreateActiveList(
   } else {
     const [created] = await db
       .insert(groceryLists)
-      .values({ userId, weekStart: null })
+      .values({ familyId, userId: userId ?? familyId, weekStart: null })
       .returning();
     list = created!;
   }
@@ -84,23 +85,24 @@ export async function addItem(
     categoryId?: string | null;
   },
 ): Promise<GroceryListItem> {
-  // Upsert product into catalog
   let resolvedProductId: string | null = data.productId ?? null;
 
   if (!resolvedProductId) {
-    // Try to find product by name for the list's user
-    const list = await db
-      .select({ userId: groceryLists.userId })
+    const listRow = await db
+      .select({ familyId: groceryLists.familyId, userId: groceryLists.userId })
       .from(groceryLists)
       .where(eq(groceryLists.id, listId))
       .limit(1);
 
-    if (list.length > 0) {
-      const userId = list[0]!.userId;
+    if (listRow.length > 0) {
+      const { familyId, userId } = listRow[0]!;
       const existing = await db
         .select()
         .from(groceryProducts)
-        .where(and(eq(groceryProducts.userId, userId), ilike(groceryProducts.name, data.name)))
+        .where(and(
+          familyId ? eq(groceryProducts.familyId, familyId) : eq(groceryProducts.userId, userId),
+          ilike(groceryProducts.name, data.name)
+        ))
         .limit(1);
 
       if (existing.length > 0) {
@@ -108,14 +110,13 @@ export async function addItem(
       } else {
         const [newProduct] = await db
           .insert(groceryProducts)
-          .values({ userId, name: data.name })
+          .values({ familyId: familyId ?? undefined, userId, name: data.name })
           .returning();
         resolvedProductId = newProduct!.id;
       }
     }
   }
 
-  // If a category was supplied, persist it on the product too
   if (data.categoryId && resolvedProductId) {
     await db
       .update(groceryProducts)
@@ -154,6 +155,13 @@ export async function addItemsFromMeal(
 ): Promise<GroceryListItem[]> {
   const created: GroceryListItem[] = [];
 
+  const listRow = await db
+    .select({ familyId: groceryLists.familyId })
+    .from(groceryLists)
+    .where(eq(groceryLists.id, listId))
+    .limit(1);
+  const familyId = listRow[0]?.familyId;
+
   for (const item of items) {
     let resolvedProductId: string | null = item.productId ?? null;
     let resolvedCategoryId: string | null = item.categoryId ?? null;
@@ -162,7 +170,10 @@ export async function addItemsFromMeal(
       const existing = await db
         .select()
         .from(groceryProducts)
-        .where(and(eq(groceryProducts.userId, userId), ilike(groceryProducts.name, item.name)))
+        .where(and(
+          familyId ? eq(groceryProducts.familyId, familyId) : eq(groceryProducts.userId, userId),
+          ilike(groceryProducts.name, item.name)
+        ))
         .limit(1);
 
       if (existing.length > 0) {
@@ -173,7 +184,7 @@ export async function addItemsFromMeal(
       } else {
         const [newProduct] = await db
           .insert(groceryProducts)
-          .values({ userId, name: item.name })
+          .values({ familyId: familyId ?? undefined, userId, name: item.name })
           .returning();
         resolvedProductId = newProduct!.id;
       }
@@ -218,7 +229,6 @@ export async function updateItem(
 
   if (data.checked === true) {
     updateData.checkedAt = new Date();
-    // Update product lastBoughtAt
     const currentItem = await db
       .select({ productId: groceryListItems.productId })
       .from(groceryListItems)
@@ -244,10 +254,7 @@ export async function updateItem(
 }
 
 export async function deleteItem(id: string): Promise<void> {
-  const result = await db
-    .delete(groceryListItems)
-    .where(eq(groceryListItems.id, id))
-    .returning();
+  const result = await db.delete(groceryListItems).where(eq(groceryListItems.id, id)).returning();
   if (result.length === 0) throw new Error('Item not found');
 }
 
@@ -262,7 +269,7 @@ export type GroceryProductWithCategory = Omit<GroceryProduct, 'category'> & {
 };
 
 export async function searchProducts(
-  userId: string,
+  familyId: string,
   query: string,
 ): Promise<GroceryProductWithCategory[]> {
   const rows = await db
@@ -270,8 +277,8 @@ export async function searchProducts(
     .from(groceryProducts)
     .leftJoin(groceryCategories, eq(groceryProducts.categoryId, groceryCategories.id))
     .where(query
-      ? and(eq(groceryProducts.userId, userId), ilike(groceryProducts.name, `%${query}%`))
-      : eq(groceryProducts.userId, userId))
+      ? and(eq(groceryProducts.familyId, familyId), ilike(groceryProducts.name, `%${query}%`))
+      : eq(groceryProducts.familyId, familyId))
     .orderBy(desc(groceryProducts.lastBoughtAt))
     .limit(query ? 20 : 100);
   return rows.map((r) => {
@@ -280,21 +287,22 @@ export async function searchProducts(
   });
 }
 
-export async function listCategories(userId: string): Promise<GroceryCategory[]> {
+export async function listCategories(familyId: string): Promise<GroceryCategory[]> {
   return db
     .select()
     .from(groceryCategories)
-    .where(eq(groceryCategories.userId, userId))
+    .where(eq(groceryCategories.familyId, familyId))
     .orderBy(asc(groceryCategories.sortOrder));
 }
 
 export async function createCategory(
+  familyId: string,
   userId: string,
   data: { name: string; color?: string },
 ): Promise<GroceryCategory> {
   const [category] = await db
     .insert(groceryCategories)
-    .values({ userId, name: data.name, color: data.color ?? '#6366f1' })
+    .values({ familyId, userId, name: data.name, color: data.color ?? '#6366f1' })
     .returning();
   return category!;
 }
@@ -331,7 +339,7 @@ export async function updateProductCategory(
 
 export async function updateProduct(
   productId: string,
-  userId: string,
+  familyId: string,
   data: Partial<{ name: string; categoryId: string | null }>,
 ): Promise<GroceryProductWithCategory> {
   const updateData: Record<string, unknown> = {};
@@ -341,12 +349,11 @@ export async function updateProduct(
   const rows = await db
     .update(groceryProducts)
     .set(updateData)
-    .where(and(eq(groceryProducts.id, productId), eq(groceryProducts.userId, userId)))
+    .where(and(eq(groceryProducts.id, productId), eq(groceryProducts.familyId, familyId)))
     .returning();
 
   if (rows.length === 0) throw new Error('Product not found');
 
-  // Return with category enriched
   const enriched = await db
     .select({ product: groceryProducts, category: groceryCategories })
     .from(groceryProducts)
@@ -360,46 +367,42 @@ export async function updateProduct(
 }
 
 export async function generateFromMealPlan(
+  familyId: string,
   userId: string,
   weekStart: string,
   listId?: string,
 ): Promise<void> {
-  // Get the meal plan for this week
   const planRows = await db
     .select()
     .from(mealPlans)
-    .where(and(eq(mealPlans.userId, userId), eq(mealPlans.weekStart, weekStart)))
+    .where(and(eq(mealPlans.familyId, familyId), eq(mealPlans.weekStart, weekStart)))
     .limit(1);
   if (planRows.length === 0) return;
 
   const plan = planRows[0]!;
 
-  // Resolve target list
   let targetListId = listId;
   if (!targetListId) {
-    const active = await getOrCreateActiveList(userId);
+    const active = await getOrCreateActiveList(familyId, userId);
     targetListId = active.id;
   }
 
-  // Get meals with recipes for this plan
   const mealRows = await db
     .select({ meal: meals, recipe: recipes })
     .from(meals)
     .leftJoin(recipes, eq(meals.recipeId, recipes.id))
     .where(eq(meals.mealPlanId, plan.id));
 
-  // Extract all ingredients
   const allIngredients: { name: string; quantity: string; unit: string }[] = [];
   for (const row of mealRows) {
     if (row.recipe?.ingredients) {
       try {
         const ings = JSON.parse(row.recipe.ingredients);
         if (Array.isArray(ings)) allIngredients.push(...ings);
-      } catch { /* ignore invalid JSON */ }
+      } catch { /* ignore */ }
     }
   }
 
-  // Get existing items to avoid duplicates
   const existingItems = await db
     .select({ name: groceryListItems.name })
     .from(groceryListItems)
@@ -409,17 +412,16 @@ export async function generateFromMealPlan(
   for (const ing of allIngredients) {
     if (!ing.name || existingNames.has(ing.name.toLowerCase())) continue;
 
-    // Upsert product into catalog
     let product = await db
       .select()
       .from(groceryProducts)
-      .where(and(eq(groceryProducts.userId, userId), ilike(groceryProducts.name, ing.name)))
+      .where(and(eq(groceryProducts.familyId, familyId), ilike(groceryProducts.name, ing.name)))
       .limit(1);
 
     if (product.length === 0) {
       const [newProduct] = await db
         .insert(groceryProducts)
-        .values({ userId, name: ing.name, defaultUnit: ing.unit || null })
+        .values({ familyId, userId, name: ing.name, defaultUnit: ing.unit || null })
         .returning();
       product = [newProduct!];
     }

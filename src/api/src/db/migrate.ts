@@ -235,6 +235,61 @@ export async function runMigrations() {
     )
   `;
 
+  // ING-1: Familie-model
+  await sql`
+    CREATE TABLE IF NOT EXISTS families (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS family_members (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      family_id UUID NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL DEFAULT 'member',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  await sql`ALTER TABLE students ADD COLUMN IF NOT EXISTS family_id UUID REFERENCES families(id)`;
+  await sql`ALTER TABLE meal_plans ADD COLUMN IF NOT EXISTS family_id UUID REFERENCES families(id)`;
+  await sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS family_id UUID REFERENCES families(id)`;
+  await sql`ALTER TABLE grocery_categories ADD COLUMN IF NOT EXISTS family_id UUID REFERENCES families(id)`;
+  await sql`ALTER TABLE grocery_products ADD COLUMN IF NOT EXISTS family_id UUID REFERENCES families(id)`;
+  await sql`ALTER TABLE grocery_lists ADD COLUMN IF NOT EXISTS family_id UUID REFERENCES families(id)`;
+  await sql`ALTER TABLE recipe_tags ADD COLUMN IF NOT EXISTS family_id UUID REFERENCES families(id)`;
+  await sql`ALTER TABLE recurring_todos ADD COLUMN IF NOT EXISTS family_id UUID REFERENCES families(id)`;
+  await sql`ALTER TABLE todos ADD COLUMN IF NOT EXISTS family_id UUID REFERENCES families(id)`;
+
+  // Migrate existing data: create one family per user
+  await sql`
+    DO $$
+    DECLARE
+      u RECORD;
+      fid UUID;
+    BEGIN
+      FOR u IN SELECT id FROM users LOOP
+        SELECT family_id INTO fid FROM family_members WHERE user_id = u.id LIMIT 1;
+        IF fid IS NULL THEN
+          INSERT INTO families(name) VALUES ('Familie') RETURNING id INTO fid;
+          INSERT INTO family_members(family_id, user_id, role) VALUES (fid, u.id, 'owner');
+        END IF;
+        UPDATE students SET family_id = fid WHERE user_id = u.id AND family_id IS NULL;
+        UPDATE meal_plans SET family_id = fid WHERE user_id = u.id AND family_id IS NULL;
+        UPDATE recipes SET family_id = fid WHERE user_id = u.id AND family_id IS NULL;
+        UPDATE grocery_categories SET family_id = fid WHERE user_id = u.id AND family_id IS NULL;
+        UPDATE grocery_products SET family_id = fid WHERE user_id = u.id AND family_id IS NULL;
+        UPDATE grocery_lists SET family_id = fid WHERE user_id = u.id AND family_id IS NULL;
+        UPDATE recipe_tags SET family_id = fid WHERE user_id = u.id AND family_id IS NULL;
+        UPDATE recurring_todos SET family_id = fid WHERE user_id = u.id AND family_id IS NULL;
+        UPDATE todos SET family_id = fid WHERE user_id = u.id AND family_id IS NULL;
+      END LOOP;
+    END $$
+  `;
+
   console.log('Migrations complete.');
   await sql.end();
 }

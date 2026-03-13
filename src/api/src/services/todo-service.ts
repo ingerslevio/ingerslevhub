@@ -12,19 +12,20 @@ function nextDueDate(frequency: string, intervalDays: number | null, fromDate: D
   return d.toISOString().slice(0, 10);
 }
 
-export async function listTodos(userId: string, done?: boolean): Promise<Todo[]> {
-  const conditions = [eq(todos.userId, userId)];
+export async function listTodos(familyId: string, done?: boolean): Promise<Todo[]> {
+  const conditions = [eq(todos.familyId, familyId)];
   if (done !== undefined) conditions.push(eq(todos.done, done));
   return db.select().from(todos)
     .where(and(...conditions))
     .orderBy(asc(todos.dueDate), asc(todos.createdAt));
 }
 
-export async function createTodo(userId: string, data: {
+export async function createTodo(familyId: string, userId: string, data: {
   title: string; description?: string; dueDate?: string; priority?: 'low' | 'medium' | 'high';
   tags?: string[]; assignedTo?: string; recurringTodoId?: string;
 }): Promise<Todo> {
   const [todo] = await db.insert(todos).values({
+    familyId,
     userId,
     title: data.title,
     description: data.description ?? null,
@@ -87,13 +88,13 @@ export async function deleteTodo(id: string): Promise<void> {
   if (result.length === 0) throw new Error('Todo not found');
 }
 
-export async function listRecurringTodos(userId: string): Promise<RecurringTodo[]> {
+export async function listRecurringTodos(familyId: string): Promise<RecurringTodo[]> {
   return db.select().from(recurringTodos)
-    .where(and(eq(recurringTodos.userId, userId), eq(recurringTodos.active, true)))
+    .where(and(eq(recurringTodos.familyId, familyId), eq(recurringTodos.active, true)))
     .orderBy(asc(recurringTodos.createdAt));
 }
 
-export async function createRecurringTodo(userId: string, data: {
+export async function createRecurringTodo(familyId: string, userId: string, data: {
   title: string; description?: string; frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
   intervalDays?: number; priority?: 'low' | 'medium' | 'high'; tags?: string[];
   assignedTo?: string; firstDueDate?: string;

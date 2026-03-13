@@ -30,13 +30,13 @@ const homeworkRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Querystring: { student?: string; completed?: string } }>(
     '/',
     async (request) => {
-      const userId = request.currentUser.id;
+      const familyId = request.currentFamilyId;
       const filters: { studentId?: string; completed?: boolean } = {};
       if (request.query.student) filters.studentId = request.query.student;
       if (request.query.completed !== undefined) {
         filters.completed = request.query.completed === 'true';
       }
-      return homeworkService.listTasks(userId, filters);
+      return homeworkService.listTasks(familyId, filters);
     },
   );
 
@@ -71,17 +71,15 @@ const homeworkRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.get('/students', async (request) => {
-    const userId = request.currentUser.id;
-    return homeworkService.getStudents(userId);
+    return homeworkService.getStudents(request.currentFamilyId);
   });
 
   fastify.post('/students', async (request, reply) => {
-    const userId = request.currentUser.id;
     const parsed = createStudentSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
     }
-    const student = await homeworkService.createStudent(userId, parsed.data);
+    const student = await homeworkService.createStudent(request.currentFamilyId, request.currentUser.id, parsed.data);
     return reply.status(201).send(student);
   });
 };
