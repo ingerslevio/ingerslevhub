@@ -1,4 +1,5 @@
-import { LogOut, Menu } from 'lucide-react'
+import { LogOut, Menu, Settings } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { api } from '@/lib/api'
@@ -37,6 +38,9 @@ export default function Header({ title, user, onMenuClick }: HeaderProps) {
             <AvatarImage src={user.avatarUrl} alt={user.name} />
             <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
+          <Button variant="ghost" size="icon" asChild aria-label="Indstillinger">
+            <Link to="/settings"><Settings className="h-4 w-4" /></Link>
+          </Button>
           <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log ud">
             <LogOut className="h-4 w-4" />
           </Button>

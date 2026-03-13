@@ -56,6 +56,9 @@ export const api = {
     async logout(): Promise<void> {
       await client.post('/api/auth/logout')
     },
+    async changePassword(data: { currentPassword?: string; newPassword: string; confirmPassword: string }): Promise<void> {
+      await client.put('/api/auth/password', data)
+    },
     async loginWithPassword(email: string, password: string): Promise<User> {
       const { data } = await client.post('/api/auth/password', { email, password })
       return data
