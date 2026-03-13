@@ -58,7 +58,7 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET active list with items
   fastify.get('/list', async (request) => {
-    return groceryService.getOrCreateActiveList(request.currentUser.id);
+    return groceryService.getOrCreateActiveList(request.currentFamilyId, request.currentUser.id);
   });
 
   // POST add item to active list
@@ -67,7 +67,7 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
     if (!parsed.success) {
       return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
     }
-    const list = await groceryService.getOrCreateActiveList(request.currentUser.id);
+    const list = await groceryService.getOrCreateActiveList(request.currentFamilyId, request.currentUser.id);
     const item = await groceryService.addItem(list.id, parsed.data);
     return reply.status(201).send(item);
   });
@@ -78,7 +78,7 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
     if (!parsed.success) {
       return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
     }
-    const list = await groceryService.getOrCreateActiveList(request.currentUser.id);
+    const list = await groceryService.getOrCreateActiveList(request.currentFamilyId, request.currentUser.id);
     const items = await groceryService.addItemsFromMeal(
       list.id,
       request.currentUser.id,
@@ -95,14 +95,14 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
       const weekStart =
         (request.query as { weekStart?: string }).weekStart ??
         new Date().toISOString().split('T')[0]!;
-      await groceryService.generateFromMealPlan(request.currentUser.id, weekStart);
+      await groceryService.generateFromMealPlan(request.currentFamilyId, request.currentUser.id, weekStart);
       return reply.status(200).send({ ok: true });
     },
   );
 
   // DELETE clear bought items from active list
   fastify.delete('/list/clear-bought', async (request, reply) => {
-    const list = await groceryService.getOrCreateActiveList(request.currentUser.id);
+    const list = await groceryService.getOrCreateActiveList(request.currentFamilyId, request.currentUser.id);
     await groceryService.clearBought(list.id);
     return reply.status(200).send({ ok: true });
   });
@@ -133,7 +133,7 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
   // GET search products with category
   fastify.get<{ Querystring: { q?: string } }>('/products', async (request) => {
     const q = request.query.q ?? '';
-    return groceryService.searchProducts(request.currentUser.id, q);
+    return groceryService.searchProducts(request.currentFamilyId, q);
   });
 
   // PATCH update product category (legacy)
@@ -161,7 +161,7 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       return await groceryService.updateProduct(
         request.params.id,
-        request.currentUser.id,
+        request.currentFamilyId,
         parsed.data,
       );
     } catch {
@@ -171,7 +171,7 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET categories
   fastify.get('/categories', async (request) => {
-    return groceryService.listCategories(request.currentUser.id);
+    return groceryService.listCategories(request.currentFamilyId);
   });
 
   // POST create category
@@ -180,7 +180,7 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
     if (!parsed.success) {
       return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
     }
-    const category = await groceryService.createCategory(request.currentUser.id, parsed.data);
+    const category = await groceryService.createCategory(request.currentFamilyId, request.currentUser.id, parsed.data);
     return reply.status(201).send(category);
   });
 
@@ -220,6 +220,7 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
         (request.query as { weekStart?: string }).weekStart ??
         new Date().toISOString().split('T')[0]!;
       await groceryService.generateFromMealPlan(
+        request.currentFamilyId,
         request.currentUser.id,
         weekStart,
         request.params.listId,

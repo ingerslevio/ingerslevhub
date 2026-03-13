@@ -4,7 +4,7 @@ import fastifyJwt from '@fastify/jwt';
 import { eq } from 'drizzle-orm';
 import { config } from '../config.js';
 import { db } from '../db/client.js';
-import { users, apiKeys, type User } from '../db/schema.js';
+import { users, apiKeys, families, familyMembers, type User } from '../db/schema.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -22,7 +22,26 @@ declare module '@fastify/jwt' {
 declare module 'fastify' {
   interface FastifyRequest {
     currentUser: User;
+    currentFamilyId: string;
   }
+}
+
+async function resolveFamilyId(userId: string): Promise<string> {
+  const [membership] = await db
+    .select({ familyId: familyMembers.familyId })
+    .from(familyMembers)
+    .where(eq(familyMembers.userId, userId))
+    .limit(1);
+
+  if (membership) return membership.familyId;
+
+  // No family yet — auto-create one
+  const [family] = await db
+    .insert(families)
+    .values({ name: 'Familie' })
+    .returning();
+  await db.insert(familyMembers).values({ familyId: family!.id, userId, role: 'owner' });
+  return family!.id;
 }
 
 async function authPlugin(fastify: FastifyInstance) {
@@ -42,6 +61,7 @@ async function authPlugin(fastify: FastifyInstance) {
       const [user] = await db.select().from(users).where(eq(users.apiKey, apiKey)).limit(1);
       if (user) {
         request.currentUser = user;
+        request.currentFamilyId = await resolveFamilyId(user.id);
         return;
       }
       // Check named api keys
@@ -50,6 +70,7 @@ async function authPlugin(fastify: FastifyInstance) {
         const [keyUser] = await db.select().from(users).where(eq(users.id, keyRow.userId)).limit(1);
         if (keyUser) {
           request.currentUser = keyUser;
+          request.currentFamilyId = await resolveFamilyId(keyUser.id);
           return;
         }
       }
@@ -64,6 +85,7 @@ async function authPlugin(fastify: FastifyInstance) {
         return reply.status(401).send({ error: 'User not found' });
       }
       request.currentUser = user;
+      request.currentFamilyId = await resolveFamilyId(user.id);
     } catch {
       return reply.status(401).send({ error: 'Unauthorized' });
     }

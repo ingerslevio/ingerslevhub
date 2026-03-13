@@ -4,19 +4,19 @@ import { students, homeworkTasks } from '../db/schema.js';
 import type { Student, HomeworkTask } from '../db/schema.js';
 
 export async function listTasks(
-  userId: string,
+  familyId: string,
   filters: { studentId?: string; completed?: boolean },
 ): Promise<HomeworkTask[]> {
-  const userStudents = await db
+  const familyStudents = await db
     .select({ id: students.id })
     .from(students)
-    .where(eq(students.userId, userId));
+    .where(eq(students.familyId, familyId));
 
-  if (userStudents.length === 0) return [];
+  if (familyStudents.length === 0) return [];
 
   const studentIds = filters.studentId
     ? [filters.studentId]
-    : userStudents.map((s) => s.id);
+    : familyStudents.map((s) => s.id);
 
   const allTasks: HomeworkTask[] = [];
   for (const studentId of studentIds) {
@@ -89,17 +89,19 @@ export async function deleteTask(id: string): Promise<void> {
   if (result.length === 0) throw new Error('Task not found');
 }
 
-export async function getStudents(userId: string): Promise<Student[]> {
-  return db.select().from(students).where(eq(students.userId, userId));
+export async function getStudents(familyId: string): Promise<Student[]> {
+  return db.select().from(students).where(eq(students.familyId, familyId));
 }
 
 export async function createStudent(
+  familyId: string,
   userId: string,
   data: { name: string; grade?: string; color?: string },
 ): Promise<Student> {
   const [student] = await db
     .insert(students)
     .values({
+      familyId,
       userId,
       name: data.name,
       grade: data.grade ?? null,

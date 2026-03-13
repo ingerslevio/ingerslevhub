@@ -1,6 +1,12 @@
 import { pgTable, text, uuid, timestamp, boolean, date, integer, real } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
+export const families = pgTable('families', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   googleId: text('google_id').unique(),
@@ -18,8 +24,17 @@ export const users = pgTable('users', {
   approved: boolean('approved').default(false).notNull(),
 });
 
+export const familyMembers = pgTable('family_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  familyId: uuid('family_id').references(() => families.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  role: text('role').default('member').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const students = pgTable('students', {
   id: uuid('id').primaryKey().defaultRandom(),
+  familyId: uuid('family_id').references(() => families.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   name: text('name').notNull(),
   grade: text('grade'),
@@ -36,6 +51,7 @@ export const subjects = pgTable('subjects', {
 
 export const mealPlans = pgTable('meal_plans', {
   id: uuid('id').primaryKey().defaultRandom(),
+  familyId: uuid('family_id').references(() => families.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   weekStart: date('week_start').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -69,6 +85,7 @@ export const homeworkTasks = pgTable('homework_tasks', {
 
 export const recipes = pgTable('recipes', {
   id: uuid('id').primaryKey().defaultRandom(),
+  familyId: uuid('family_id').references(() => families.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   name: text('name').notNull(),
   description: text('description'),
@@ -87,6 +104,7 @@ export const recipes = pgTable('recipes', {
 
 export const groceryCategories = pgTable('grocery_categories', {
   id: uuid('id').primaryKey().defaultRandom(),
+  familyId: uuid('family_id').references(() => families.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   name: text('name').notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
@@ -96,6 +114,7 @@ export const groceryCategories = pgTable('grocery_categories', {
 
 export const groceryProducts = pgTable('grocery_products', {
   id: uuid('id').primaryKey().defaultRandom(),
+  familyId: uuid('family_id').references(() => families.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   name: text('name').notNull(),
   defaultUnit: text('default_unit'),
@@ -107,6 +126,7 @@ export const groceryProducts = pgTable('grocery_products', {
 
 export const groceryLists = pgTable('grocery_lists', {
   id: uuid('id').primaryKey().defaultRandom(),
+  familyId: uuid('family_id').references(() => families.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   weekStart: date('week_start'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -130,6 +150,7 @@ export const groceryListItems = pgTable('grocery_list_items', {
 
 export const recipeTags = pgTable('recipe_tags', {
   id: uuid('id').primaryKey().defaultRandom(),
+  familyId: uuid('family_id').references(() => families.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   name: text('name').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -145,6 +166,10 @@ export const apiKeys = pgTable('api_keys', {
 
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
+export type Family = typeof families.$inferSelect;
+export type NewFamily = typeof families.$inferInsert;
+export type FamilyMember = typeof familyMembers.$inferSelect;
+export type NewFamilyMember = typeof familyMembers.$inferInsert;
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -185,6 +210,7 @@ export type NewAulaToken = typeof aulaTokens.$inferInsert;
 
 export const recurringTodos = pgTable('recurring_todos', {
   id: uuid('id').primaryKey().defaultRandom(),
+  familyId: uuid('family_id').references(() => families.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   title: text('title').notNull(),
   description: text('description'),
@@ -199,6 +225,7 @@ export const recurringTodos = pgTable('recurring_todos', {
 
 export const todos = pgTable('todos', {
   id: uuid('id').primaryKey().defaultRandom(),
+  familyId: uuid('family_id').references(() => families.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   title: text('title').notNull(),
   description: text('description'),

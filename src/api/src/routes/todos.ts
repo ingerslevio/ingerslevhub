@@ -40,14 +40,14 @@ const todosRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get<{ Querystring: { done?: string } }>('/', async (request) => {
     const done = request.query.done === 'true' ? true : request.query.done === 'false' ? false : undefined;
-    const items = await todoService.listTodos(request.currentUser.id, done);
+    const items = await todoService.listTodos(request.currentFamilyId, done);
     return items.map(t => ({ ...t, tags: JSON.parse(t.tags ?? '[]') }));
   });
 
   fastify.post('/', async (request, reply) => {
     const parsed = createTodoSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
-    const todo = await todoService.createTodo(request.currentUser.id, parsed.data);
+    const todo = await todoService.createTodo(request.currentFamilyId, request.currentUser.id, parsed.data);
     return reply.status(201).send({ ...todo, tags: JSON.parse(todo.tags ?? '[]') });
   });
 
@@ -73,14 +73,14 @@ const todosRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Recurring
   fastify.get('/recurring', async (request) => {
-    const items = await todoService.listRecurringTodos(request.currentUser.id);
+    const items = await todoService.listRecurringTodos(request.currentFamilyId);
     return items.map(r => ({ ...r, tags: JSON.parse(r.tags ?? '[]') }));
   });
 
   fastify.post('/recurring', async (request, reply) => {
     const parsed = createRecurringSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
-    const recurring = await todoService.createRecurringTodo(request.currentUser.id, parsed.data);
+    const recurring = await todoService.createRecurringTodo(request.currentFamilyId, request.currentUser.id, parsed.data);
     return reply.status(201).send({ ...recurring, tags: JSON.parse(recurring.tags ?? '[]') });
   });
 

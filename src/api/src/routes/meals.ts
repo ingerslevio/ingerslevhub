@@ -26,9 +26,8 @@ const mealsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', fastify.authenticate);
 
   fastify.get<{ Querystring: { date?: string } }>('/week', async (request) => {
-    const userId = request.currentUser.id;
     const date = request.query.date ?? new Date().toISOString().split('T')[0]!;
-    return mealService.getOrCreateWeekPlan(userId, date);
+    return mealService.getOrCreateWeekPlan(request.currentFamilyId, request.currentUser.id, date);
   });
 
   fastify.post('/', async (request, reply) => {

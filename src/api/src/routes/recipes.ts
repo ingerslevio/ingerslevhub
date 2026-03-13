@@ -19,16 +19,16 @@ const recipesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', fastify.authenticate);
 
   fastify.get('/', async (request) => {
-    return recipeService.listRecipes(request.currentUser.id);
+    return recipeService.listRecipes(request.currentFamilyId);
   });
 
   fastify.get<{ Querystring: { q?: string } }>('/tags', async (request) => {
-    return recipeService.listTags(request.currentUser.id, request.query.q);
+    return recipeService.listTags(request.currentFamilyId, request.query.q);
   });
 
   fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
     try {
-      return await recipeService.getRecipe(request.params.id, request.currentUser.id);
+      return await recipeService.getRecipe(request.params.id, request.currentFamilyId);
     } catch {
       return reply.status(404).send({ error: 'Recipe not found' });
     }
@@ -39,7 +39,7 @@ const recipesRoutes: FastifyPluginAsync = async (fastify) => {
     if (!parsed.success) {
       return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
     }
-    const recipe = await recipeService.createRecipe(request.currentUser.id, parsed.data);
+    const recipe = await recipeService.createRecipe(request.currentFamilyId, request.currentUser.id, parsed.data);
     return reply.status(201).send(recipe);
   });
 
@@ -49,7 +49,7 @@ const recipesRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
     }
     try {
-      return await recipeService.updateRecipe(request.params.id, request.currentUser.id, parsed.data);
+      return await recipeService.updateRecipe(request.params.id, request.currentFamilyId, parsed.data);
     } catch {
       return reply.status(404).send({ error: 'Recipe not found' });
     }
@@ -57,7 +57,7 @@ const recipesRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
     try {
-      await recipeService.deleteRecipe(request.params.id, request.currentUser.id);
+      await recipeService.deleteRecipe(request.params.id, request.currentFamilyId);
       return reply.status(204).send();
     } catch {
       return reply.status(404).send({ error: 'Recipe not found' });

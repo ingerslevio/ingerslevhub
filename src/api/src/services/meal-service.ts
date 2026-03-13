@@ -13,6 +13,7 @@ export function getWeekStart(dateStr: string): string {
 }
 
 export async function getOrCreateWeekPlan(
+  familyId: string,
   userId: string,
   weekStart: string,
 ): Promise<MealPlan & { meals: (Meal & { recipe?: Recipe | null })[] }> {
@@ -21,7 +22,7 @@ export async function getOrCreateWeekPlan(
   const existing = await db
     .select()
     .from(mealPlans)
-    .where(and(eq(mealPlans.userId, userId), eq(mealPlans.weekStart, mondayDate)))
+    .where(and(eq(mealPlans.familyId, familyId), eq(mealPlans.weekStart, mondayDate)))
     .limit(1);
 
   let plan: MealPlan;
@@ -30,7 +31,7 @@ export async function getOrCreateWeekPlan(
   } else {
     const [created] = await db
       .insert(mealPlans)
-      .values({ userId, weekStart: mondayDate })
+      .values({ familyId, userId, weekStart: mondayDate })
       .returning();
     plan = created!;
   }

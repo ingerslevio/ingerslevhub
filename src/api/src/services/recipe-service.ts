@@ -9,7 +9,7 @@ export type EnrichedRecipe = Recipe & {
   avgRating: number | null;
 };
 
-export async function listRecipes(userId: string): Promise<EnrichedRecipe[]> {
+export async function listRecipes(familyId: string): Promise<EnrichedRecipe[]> {
   const result = await db
     .select({
       id: recipes.id,
@@ -33,7 +33,7 @@ export async function listRecipes(userId: string): Promise<EnrichedRecipe[]> {
     })
     .from(recipes)
     .leftJoin(meals, eq(meals.recipeId, recipes.id))
-    .where(eq(recipes.userId, userId))
+    .where(eq(recipes.familyId, familyId))
     .groupBy(recipes.id);
 
   return result.map((r) => ({
@@ -43,17 +43,18 @@ export async function listRecipes(userId: string): Promise<EnrichedRecipe[]> {
   }));
 }
 
-export async function getRecipe(id: string, userId: string): Promise<Recipe> {
+export async function getRecipe(id: string, familyId: string): Promise<Recipe> {
   const [recipe] = await db
     .select()
     .from(recipes)
-    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+    .where(and(eq(recipes.id, id), eq(recipes.familyId, familyId)))
     .limit(1);
   if (!recipe) throw new Error('Recipe not found');
   return recipe;
 }
 
 export async function createRecipe(
+  familyId: string,
   userId: string,
   data: {
     name: string;
@@ -72,6 +73,7 @@ export async function createRecipe(
   const [recipe] = await db
     .insert(recipes)
     .values({
+      familyId,
       userId,
       name: data.name,
       description: data.description ?? null,
@@ -124,7 +126,7 @@ export async function updateRecipe(
   const [recipe] = await db
     .update(recipes)
     .set(updateData)
-    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+    .where(and(eq(recipes.id, id), eq(recipes.familyId, familyId)))
     .returning();
   if (!recipe) throw new Error('Recipe not found');
 
@@ -138,7 +140,7 @@ export async function updateRecipe(
 export async function deleteRecipe(id: string, userId: string): Promise<void> {
   const result = await db
     .delete(recipes)
-    .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+    .where(and(eq(recipes.id, id), eq(recipes.familyId, familyId)))
     .returning();
   if (result.length === 0) throw new Error('Recipe not found');
 }
