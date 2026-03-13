@@ -1,3 +1,4 @@
+import './tracing.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Fastify from 'fastify';
@@ -32,13 +33,13 @@ async function start() {
   await app.register(recipesRoutes, { prefix: '/api/recipes' });
   await app.register(groceriesRoutes, { prefix: '/api/groceries' });
 
-  app.get('/api/health', async () => ({ status: 'ok' }));
+  app.get('/api/health', { logLevel: 'silent' }, async () => ({ status: 'ok' }));
 
   if (process.env.NODE_ENV === 'production') {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const { default: fastifyStatic } = await import('@fastify/static');
     await app.register(fastifyStatic, {
-      root: path.join(__dirname, '../../public'),
+      root: path.join(__dirname, '../public'),
       prefix: '/',
     });
     app.setNotFoundHandler(async (_request, reply) => {
