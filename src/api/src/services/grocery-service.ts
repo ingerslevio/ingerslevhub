@@ -81,6 +81,7 @@ export async function addItem(
     quantity?: string;
     note?: string;
     buyOnDiscount?: boolean;
+    categoryId?: string | null;
   },
 ): Promise<GroceryListItem> {
   // Upsert product into catalog
@@ -114,6 +115,14 @@ export async function addItem(
     }
   }
 
+  // If a category was supplied, persist it on the product too
+  if (data.categoryId && resolvedProductId) {
+    await db
+      .update(groceryProducts)
+      .set({ categoryId: data.categoryId })
+      .where(eq(groceryProducts.id, resolvedProductId));
+  }
+
   const [item] = await db
     .insert(groceryListItems)
     .values({
@@ -124,6 +133,7 @@ export async function addItem(
       note: data.note ?? null,
       buyOnDiscount: data.buyOnDiscount ?? false,
       checked: false,
+      categoryId: data.categoryId ?? null,
     })
     .returning();
   return item!;

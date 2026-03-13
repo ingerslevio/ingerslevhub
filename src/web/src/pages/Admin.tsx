@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Trash2, Plus, ShieldCheck } from 'lucide-react'
+import { Trash2, Plus, ShieldCheck, Key, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { api } from '@/lib/api'
-import type { User } from '@/types'
+import type { User, ApiKey } from '@/types'
 
 export default function Admin() {
   const queryClient = useQueryClient()
@@ -51,6 +51,36 @@ export default function Admin() {
   const [newName, setNewName] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [newRole, setNewRole] = useState('user')
+
+  const { data: apiKeys = [] } = useQuery<ApiKey[]>({
+    queryKey: ['admin', 'api-keys'],
+    queryFn: () => api.admin.listApiKeys(),
+    enabled: currentUser?.role === 'admin',
+  })
+
+  const createApiKeyMutation = useMutation({
+    mutationFn: (input: { name: string; userId: string }) => api.admin.createApiKey(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'api-keys'] })
+      setNewKeyName('')
+      setNewKeyUserId('')
+    },
+  })
+
+  const deleteApiKeyMutation = useMutation({
+    mutationFn: (id: string) => api.admin.deleteApiKey(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'api-keys'] }),
+  })
+
+  const [newKeyName, setNewKeyName] = useState('')
+  const [newKeyUserId, setNewKeyUserId] = useState('')
+  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null)
+
+  const copyKey = (key: string, id: string) => {
+    void navigator.clipboard.writeText(key)
+    setCopiedKeyId(id)
+    setTimeout(() => setCopiedKeyId(null), 2000)
+  }
 
   if (!currentUser) {
     return null
@@ -168,6 +198,87 @@ export default function Admin() {
                 onDelete={() => deleteUserMutation.mutate(user.id)}
                 isSelf={user.id === currentUser.id}
               />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* API Keys section */}
+      <div className="border rounded-lg overflow-hidden">
+        <div className="p-4 border-b bg-muted/30 flex items-center gap-2">
+          <Key className="h-4 w-4" />
+          <h2 className="text-base font-semibold">API Nøgler til bots ({apiKeys.length})</h2>
+        </div>
+
+        {/* Create new key form */}
+        <div className="p-4 border-b space-y-3">
+          <p className="text-sm font-medium">Opret ny API nøgle</p>
+          <div className="flex gap-2 flex-wrap">
+            <Input
+              className="h-8 text-sm flex-1 min-w-40"
+              placeholder="Navn (fx 'Home Assistant')"
+              value={newKeyName}
+              onChange={e => setNewKeyName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && newKeyName.trim() && newKeyUserId) createApiKeyMutation.mutate({ name: newKeyName.trim(), userId: newKeyUserId }) }}
+            />
+            <Select value={newKeyUserId} onValueChange={setNewKeyUserId}>
+              <SelectTrigger className="h-8 text-sm w-48">
+                <SelectValue placeholder="Vælg bruger" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map(u => (
+                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              className="h-8"
+              disabled={!newKeyName.trim() || !newKeyUserId || createApiKeyMutation.isPending}
+              onClick={() => createApiKeyMutation.mutate({ name: newKeyName.trim(), userId: newKeyUserId })}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Opret
+            </Button>
+          </div>
+        </div>
+
+        {/* Keys list */}
+        {apiKeys.length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground">Ingen API nøgler oprettet endnu.</p>
+        ) : (
+          <div className="divide-y">
+            {apiKeys.map(k => (
+              <div key={k.id} className="flex items-center gap-3 p-3 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{k.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {users.find(u => u.id === k.userId)?.name ?? k.userId}
+                    {' · '}
+                    {new Date(k.createdAt).toLocaleDateString('da-DK')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <code className="text-xs bg-muted px-2 py-1 rounded font-mono">{k.key.slice(0, 8)}…</code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground"
+                    onClick={() => copyKey(k.key, k.id)}
+                    title="Kopiér nøgle"
+                  >
+                    {copiedKeyId === k.id ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={() => deleteApiKeyMutation.mutate(k.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
         )}

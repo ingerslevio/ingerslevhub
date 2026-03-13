@@ -4,7 +4,7 @@ import fastifyJwt from '@fastify/jwt';
 import { eq } from 'drizzle-orm';
 import { config } from '../config.js';
 import { db } from '../db/client.js';
-import { users, type User } from '../db/schema.js';
+import { users, apiKeys, type User } from '../db/schema.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -38,12 +38,22 @@ async function authPlugin(fastify: FastifyInstance) {
     const apiKey = request.headers['x-api-key'] as string | undefined;
 
     if (apiKey) {
+      // Check user's own api key
       const [user] = await db.select().from(users).where(eq(users.apiKey, apiKey)).limit(1);
-      if (!user) {
-        return reply.status(401).send({ error: 'Invalid API key' });
+      if (user) {
+        request.currentUser = user;
+        return;
       }
-      request.currentUser = user;
-      return;
+      // Check named api keys
+      const [keyRow] = await db.select({ userId: apiKeys.userId }).from(apiKeys).where(eq(apiKeys.key, apiKey)).limit(1);
+      if (keyRow) {
+        const [keyUser] = await db.select().from(users).where(eq(users.id, keyRow.userId)).limit(1);
+        if (keyUser) {
+          request.currentUser = keyUser;
+          return;
+        }
+      }
+      return reply.status(401).send({ error: 'Invalid API key' });
     }
 
     try {

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag, AulaToken } from '@/types'
+import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag, AulaToken, ApiKey, Todo, RecurringTodo } from '@/types'
 
 
 const client = axios.create({
@@ -76,6 +76,17 @@ export const api = {
     },
     async deleteUser(id: string): Promise<void> {
       await client.delete(`/api/admin/users/${id}`)
+    },
+    async listApiKeys(): Promise<ApiKey[]> {
+      const { data } = await client.get('/api/admin/api-keys')
+      return data
+    },
+    async createApiKey(input: { name: string; userId: string }): Promise<ApiKey> {
+      const { data } = await client.post('/api/admin/api-keys', input)
+      return data
+    },
+    async deleteApiKey(id: string): Promise<void> {
+      await client.delete(`/api/admin/api-keys/${id}`)
     },
   },
   meals: {
@@ -177,7 +188,7 @@ export const api = {
       const { data } = await client.get('/api/groceries/list')
       return data
     },
-    async addItem(_listId: string, input: { name: string; productId?: string; quantity?: string; note?: string; buyOnDiscount?: boolean }): Promise<GroceryListItem> {
+    async addItem(_listId: string, input: { name: string; productId?: string; quantity?: string; note?: string; buyOnDiscount?: boolean; categoryId?: string | null }): Promise<GroceryListItem> {
       const { data } = await client.post('/api/groceries/list/items', input)
       return data
     },
@@ -223,6 +234,34 @@ export const api = {
     async updateProduct(id: string, input: { name?: string; categoryId?: string | null }): Promise<GroceryProduct> {
       const { data } = await client.patch(`/api/groceries/products/${id}`, input)
       return data
+    },
+  },
+  todos: {
+    async list(done?: boolean): Promise<Todo[]> {
+      const { data } = await client.get('/api/todos', { params: done !== undefined ? { done: String(done) } : {} })
+      return data
+    },
+    async create(input: { title: string; description?: string; dueDate?: string; priority?: 'low'|'medium'|'high'; tags?: string[]; assignedTo?: string }): Promise<Todo> {
+      const { data } = await client.post('/api/todos', input)
+      return data
+    },
+    async update(id: string, input: Partial<{ title: string; description: string | null; dueDate: string | null; priority: 'low'|'medium'|'high'; done: boolean; tags: string[]; assignedTo: string | null }>): Promise<Todo> {
+      const { data } = await client.put(`/api/todos/${id}`, input)
+      return data
+    },
+    async delete(id: string): Promise<void> {
+      await client.delete(`/api/todos/${id}`)
+    },
+    async listRecurring(): Promise<RecurringTodo[]> {
+      const { data } = await client.get('/api/todos/recurring')
+      return data
+    },
+    async createRecurring(input: { title: string; description?: string; frequency: 'daily'|'weekly'|'monthly'|'custom'; intervalDays?: number; priority?: 'low'|'medium'|'high'; tags?: string[]; assignedTo?: string; firstDueDate?: string }): Promise<RecurringTodo> {
+      const { data } = await client.post('/api/todos/recurring', input)
+      return data
+    },
+    async deleteRecurring(id: string): Promise<void> {
+      await client.delete(`/api/todos/recurring/${id}`)
     },
   },
   aula: {

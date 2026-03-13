@@ -135,6 +135,17 @@ export const recipeTags = pgTable('recipe_tags', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const apiKeys = pgTable('api_keys', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  key: uuid('key').default(sql`gen_random_uuid()`).notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type NewApiKey = typeof apiKeys.$inferInsert;
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Student = typeof students.$inferSelect;
@@ -171,3 +182,37 @@ export type RecipeTag = typeof recipeTags.$inferSelect;
 export type NewRecipeTag = typeof recipeTags.$inferInsert;
 export type AulaToken = typeof aulaTokens.$inferSelect;
 export type NewAulaToken = typeof aulaTokens.$inferInsert;
+
+export const recurringTodos = pgTable('recurring_todos', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  priority: text('priority', { enum: ['low', 'medium', 'high'] }).default('medium').notNull(),
+  tags: text('tags').default('[]').notNull(),
+  assignedTo: text('assigned_to'),
+  frequency: text('frequency', { enum: ['daily', 'weekly', 'monthly', 'custom'] }).notNull(),
+  intervalDays: integer('interval_days'),
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const todos = pgTable('todos', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  dueDate: date('due_date'),
+  priority: text('priority', { enum: ['low', 'medium', 'high'] }).default('medium').notNull(),
+  done: boolean('done').default(false).notNull(),
+  doneAt: timestamp('done_at'),
+  tags: text('tags').default('[]').notNull(),
+  assignedTo: text('assigned_to'),
+  recurringTodoId: uuid('recurring_todo_id').references(() => recurringTodos.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type RecurringTodo = typeof recurringTodos.$inferSelect;
+export type NewRecurringTodo = typeof recurringTodos.$inferInsert;
+export type Todo = typeof todos.$inferSelect;
+export type NewTodo = typeof todos.$inferInsert;

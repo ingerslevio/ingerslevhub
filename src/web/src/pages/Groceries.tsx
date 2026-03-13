@@ -148,6 +148,11 @@ function ProductSearch({ listId, categories, onItemAdded }: ProductSearchProps) 
   const [addQty, setAddQty] = useState('')
   const [addNote, setAddNote] = useState('')
   const [addDiscount, setAddDiscount] = useState(false)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [newItemCategoryId, setNewItemCategoryId] = useState<string | null>(null)
+  const [newItemQty, setNewItemQty] = useState('')
+  const [newItemNote, setNewItemNote] = useState('')
+  const [newItemDiscount, setNewItemDiscount] = useState(false)
   const [editingProduct, setEditingProduct] = useState<GroceryProduct | null>(null)
   const [editName, setEditName] = useState('')
   const [editCategoryId, setEditCategoryId] = useState<string | null>(null)
@@ -161,6 +166,7 @@ function ProductSearch({ listId, categories, onItemAdded }: ProductSearchProps) 
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
+    setShowCreateForm(false)
     if (query.length < 1) { setResults([]); return }
     debounceRef.current = setTimeout(async () => {
       setResults(await api.groceries.searchProducts(query))
@@ -190,11 +196,14 @@ function ProductSearch({ listId, categories, onItemAdded }: ProductSearchProps) 
   })
 
   const createItemMutation = useMutation({
-    mutationFn: (name: string) => api.groceries.addItem(listId, { name }),
+    mutationFn: (input: { name: string; categoryId?: string | null; quantity?: string; note?: string; buyOnDiscount?: boolean }) =>
+      api.groceries.addItem(listId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groceries'] })
       queryClient.invalidateQueries({ queryKey: ['grocery-products-all'] })
       setQuery(''); setResults([])
+      setShowCreateForm(false)
+      setNewItemCategoryId(null); setNewItemQty(''); setNewItemNote(''); setNewItemDiscount(false)
       onItemAdded()
     },
   })
@@ -237,7 +246,7 @@ function ProductSearch({ listId, categories, onItemAdded }: ProductSearchProps) 
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => {
-            if (e.key === 'Enter' && query.trim() && !exactMatch) createItemMutation.mutate(query.trim())
+            if (e.key === 'Enter' && query.trim() && !exactMatch) createItemMutation.mutate({ name: query.trim() })
           }}
         />
         {query.length > 0 && (
@@ -306,14 +315,62 @@ function ProductSearch({ listId, categories, onItemAdded }: ProductSearchProps) 
         ))}
 
         {!exactMatch && query.trim() && (
-          <button
-            className="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 flex items-center gap-2 text-muted-foreground border-t"
-            onClick={() => createItemMutation.mutate(query.trim())}
-            disabled={createItemMutation.isPending}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Opret ny vare: <span className="font-medium text-foreground ml-1">{query}</span>
-          </button>
+          <div className="border-t">
+            <button
+              className="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 flex items-center gap-2 text-muted-foreground"
+              onClick={() => setShowCreateForm(v => !v)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Opret ny vare: <span className="font-medium text-foreground ml-1">{query}</span>
+              {showCreateForm ? <ChevronUp className="h-3.5 w-3.5 ml-auto" /> : <ChevronDown className="h-3.5 w-3.5 ml-auto" />}
+            </button>
+            {showCreateForm && (
+              <div className="px-3 pb-3 pt-1 space-y-2 bg-muted/20">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">Kategori</span>
+                  <Select value={newItemCategoryId ?? 'none'} onValueChange={v => setNewItemCategoryId(v === 'none' ? null : v)}>
+                    <SelectTrigger className="h-7 text-sm">
+                      <SelectValue placeholder="Ingen kategori" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Ingen kategori</SelectItem>
+                      {categories.map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <span className="flex items-center gap-2">
+                            <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} />
+                            {c.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2">
+                  <Input className="h-7 text-sm flex-1" placeholder="Mængde (fx 500g)"
+                    value={newItemQty} onChange={e => setNewItemQty(e.target.value)} />
+                  <Input className="h-7 text-sm flex-1" placeholder="Note"
+                    value={newItemNote} onChange={e => setNewItemNote(e.target.value)} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <Checkbox checked={newItemDiscount} onCheckedChange={v => setNewItemDiscount(!!v)} />
+                    <span className="text-xs">Køb på tilbud</span>
+                  </label>
+                  <Button size="sm" className="h-7 text-xs"
+                    disabled={createItemMutation.isPending}
+                    onClick={() => createItemMutation.mutate({
+                      name: query.trim(),
+                      categoryId: newItemCategoryId,
+                      quantity: newItemQty || undefined,
+                      note: newItemNote || undefined,
+                      buyOnDiscount: newItemDiscount,
+                    })}>
+                    <Plus className="h-3 w-3 mr-1" /> Tilføj
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {displayedProducts.length === 0 && !query && (

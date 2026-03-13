@@ -14,6 +14,7 @@ const Recipes = React.lazy(() => import('./pages/Recipes'))
 const Login = React.lazy(() => import('./pages/Login'))
 const Admin = React.lazy(() => import('./pages/Admin'))
 const Aula = React.lazy(() => import('./pages/Aula'))
+const Todos = React.lazy(() => import('./pages/Todos'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +35,7 @@ const pageTitles: Record<string, string> = {
   '/recipes': 'Opskrifter',
   '/admin': 'Admin',
   '/aula': 'Aula',
+  '/todos': 'Opgaver',
 }
 
 function AuthenticatedRoutes() {
@@ -75,6 +77,7 @@ function AuthenticatedRoutes() {
           <Route path="/recipes" element={<Recipes />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/aula" element={<Aula />} />
+          <Route path="/todos" element={<Todos />} />
         </Routes>
       </Suspense>
     </Shell>

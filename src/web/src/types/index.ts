@@ -156,3 +156,40 @@ export interface GroceryListItem {
   } | null
   category?: GroceryCategory | null
 }
+
+export interface ApiKey {
+  id: string
+  userId: string
+  name: string
+  key: string
+  createdAt: string
+}
+
+export interface Todo {
+  id: string
+  userId: string
+  title: string
+  description?: string | null
+  dueDate?: string | null
+  priority: 'low' | 'medium' | 'high'
+  done: boolean
+  doneAt?: string | null
+  tags: string[]
+  assignedTo?: string | null
+  recurringTodoId?: string | null
+  createdAt: string
+}
+
+export interface RecurringTodo {
+  id: string
+  userId: string
+  title: string
+  description?: string | null
+  priority: 'low' | 'medium' | 'high'
+  tags: string[]
+  assignedTo?: string | null
+  frequency: 'daily' | 'weekly' | 'monthly' | 'custom'
+  intervalDays?: number | null
+  active: boolean
+  createdAt: string
+}

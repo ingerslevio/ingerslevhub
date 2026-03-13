@@ -262,7 +262,7 @@ function DinnerRow({ meal, onDelete, onRate, onAddToList }: DinnerRowProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
           onClick={() => onAddToList(meal)}
           title="Tilføj til indkøbsliste"
         >

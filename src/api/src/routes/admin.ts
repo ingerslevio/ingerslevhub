@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db/client.js';
-import { users } from '../db/schema.js';
+import { users, apiKeys } from '../db/schema.js';
 import { hashPassword } from './auth.js';
 
 const createUserSchema = z.object({
@@ -122,6 +122,30 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ error: 'User not found' });
     }
 
+    return reply.status(204).send();
+  });
+
+  // GET all API keys
+  fastify.get('/api-keys', async () => {
+    const rows = await db
+      .select({ id: apiKeys.id, name: apiKeys.name, key: apiKeys.key, userId: apiKeys.userId, createdAt: apiKeys.createdAt })
+      .from(apiKeys)
+      .orderBy(apiKeys.createdAt);
+    return rows;
+  });
+
+  // POST create API key
+  fastify.post('/api-keys', async (request, reply) => {
+    const body = z.object({ name: z.string().min(1).max(200), userId: z.string().uuid() }).safeParse(request.body);
+    if (!body.success) return reply.status(400).send({ error: 'Validation failed' });
+    const [created] = await db.insert(apiKeys).values({ name: body.data.name, userId: body.data.userId }).returning();
+    return reply.status(201).send(created);
+  });
+
+  // DELETE API key
+  fastify.delete<{ Params: { id: string } }>('/api-keys/:id', async (request, reply) => {
+    const result = await db.delete(apiKeys).where(eq(apiKeys.id, request.params.id)).returning();
+    if (result.length === 0) return reply.status(404).send({ error: 'API key not found' });
     return reply.status(204).send();
   });
 };

@@ -54,21 +54,23 @@ export function CategoryEditor({ open, onClose }: CategoryEditorProps) {
     updateMutation.mutate({ id: cat.id, input: { color } })
   }
 
-  const handleMoveUp = (index: number) => {
-    if (index === 0) return
-    const a = sorted[index]
-    const b = sorted[index - 1]
-    updateMutation.mutate({ id: a.id, input: { sortOrder: b.sortOrder } })
-    updateMutation.mutate({ id: b.id, input: { sortOrder: a.sortOrder } })
+  // Move item to a new index, assigning sequential 0-based sortOrders to ALL
+  // categories so duplicate/gap sort orders are healed on every move.
+  const reorder = async (fromIdx: number, toIdx: number) => {
+    const newOrder = [...sorted]
+    const [moved] = newOrder.splice(fromIdx, 1)
+    newOrder.splice(toIdx, 0, moved)
+    await Promise.all(
+      newOrder.map((cat, i) =>
+        cat.sortOrder !== i ? api.groceries.updateCategory(cat.id, { sortOrder: i }) : Promise.resolve(cat)
+      )
+    )
+    queryClient.invalidateQueries({ queryKey: ['groceryCategories'] })
+    queryClient.invalidateQueries({ queryKey: ['grocery-categories'] })
   }
 
-  const handleMoveDown = (index: number) => {
-    if (index === sorted.length - 1) return
-    const a = sorted[index]
-    const b = sorted[index + 1]
-    updateMutation.mutate({ id: a.id, input: { sortOrder: b.sortOrder } })
-    updateMutation.mutate({ id: b.id, input: { sortOrder: a.sortOrder } })
-  }
+  const handleMoveUp = (index: number) => { void reorder(index, index - 1) }
+  const handleMoveDown = (index: number) => { void reorder(index, index + 1) }
 
   const handleDelete = (id: string) => {
     deleteMutation.mutate(id)
