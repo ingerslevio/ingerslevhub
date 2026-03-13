@@ -3,10 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { format, startOfWeek, addWeeks, subWeeks, getISOWeek, getISOWeekYear, startOfISOWeek } from 'date-fns'
 import { da } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Trash2, ShoppingCart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { RecipeBrowserDialog } from '@/components/meal-plan/RecipeBrowserDialog'
+import { AddFromMealDialog } from '@/components/groceries/AddFromMealDialog'
 import { api } from '@/lib/api'
 import type { Recipe, Meal } from '@/types'
 
@@ -75,6 +76,7 @@ export default function MealPlan() {
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [recipeBrowserDay, setRecipeBrowserDay] = useState<string | null>(null)
+  const [addToListMeal, setAddToListMeal] = useState<Meal | null>(null)
 
   const weekParam = searchParams.get('uge')
 
@@ -191,6 +193,11 @@ export default function MealPlan() {
                           meal={dinner}
                           onDelete={() => deleteMutation.mutate(dinner.id)}
                           onRate={handleRate}
+                          onAddToList={
+                            dinner.recipe?.ingredients && dinner.recipe.ingredients !== '[]'
+                              ? () => setAddToListMeal(dinner)
+                              : undefined
+                          }
                         />
                       ))}
                     </div>
@@ -215,6 +222,14 @@ export default function MealPlan() {
         onClose={() => setRecipeBrowserDay(null)}
         onSelect={handleRecipeSelected}
       />
+
+      {addToListMeal !== null && (
+        <AddFromMealDialog
+          open={true}
+          onClose={() => setAddToListMeal(null)}
+          meal={addToListMeal}
+        />
+      )}
     </div>
   )
 }
@@ -223,9 +238,10 @@ interface DinnerRowProps {
   meal: Meal
   onDelete: () => void
   onRate: (mealId: string, rating: number) => void
+  onAddToList?: (meal: Meal) => void
 }
 
-function DinnerRow({ meal, onDelete, onRate }: DinnerRowProps) {
+function DinnerRow({ meal, onDelete, onRate, onAddToList }: DinnerRowProps) {
   return (
     <div className="flex items-start gap-2 group">
       <div className="flex-1 min-w-0">
@@ -242,6 +258,17 @@ function DinnerRow({ meal, onDelete, onRate }: DinnerRowProps) {
           </p>
         )}
       </div>
+      {onAddToList && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={() => onAddToList(meal)}
+          title="Tilføj til indkøbsliste"
+        >
+          <ShoppingCart className="h-3.5 w-3.5" />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon"

@@ -1,13 +1,12 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, startOfWeek } from 'date-fns'
-import { Trash2, Plus, ChevronDown, ChevronUp, Tag, Settings2, ShoppingCart, Search, Pencil, X } from 'lucide-react'
+import { Trash2, Plus, ChevronDown, ChevronUp, Settings2, ShoppingCart, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { api } from '@/lib/api'
 import type { GroceryListItem, GroceryProduct, GroceryCategory, Meal } from '@/types'
 import { cn } from '@/lib/utils'
@@ -30,99 +29,99 @@ const DAY_LABELS: Record<string, string> = {
 
 interface GroceryItemRowProps {
   item: GroceryListItem
-  categories: GroceryCategory[]
-  onUpdate: (id: string, data: Partial<{ quantity: string; note: string; buyOnDiscount: boolean; checked: boolean; categoryId: string | null }>) => void
+  expanded: boolean
+  onExpand: () => void
+  onCollapse: () => void
+  onUpdate: (id: string, data: Partial<{ quantity: string; note: string; buyOnDiscount: boolean; checked: boolean }>) => void
   onDelete: (id: string) => void
 }
 
-function GroceryItemRow({ item, categories, onUpdate, onDelete }: GroceryItemRowProps) {
-  const [editingQty, setEditingQty] = useState(false)
-  const [editingNote, setEditingNote] = useState(false)
+function GroceryItemRow({ item, expanded, onExpand, onCollapse, onUpdate, onDelete }: GroceryItemRowProps) {
   const [qty, setQty] = useState(item.quantity ?? '')
   const [note, setNote] = useState(item.note ?? '')
 
+  useEffect(() => {
+    setQty(item.quantity ?? '')
+    setNote(item.note ?? '')
+  }, [item.quantity, item.note])
+
   const commitQty = () => {
-    setEditingQty(false)
     if (qty !== (item.quantity ?? '')) onUpdate(item.id, { quantity: qty || undefined })
   }
 
   const commitNote = () => {
-    setEditingNote(false)
     if (note !== (item.note ?? '')) onUpdate(item.id, { note: note || undefined })
   }
 
-  const currentCategoryId = item.categoryId ?? item.effectiveCategoryId ?? ''
+  const handleRowClick = () => {
+    onUpdate(item.id, { checked: !item.checked })
+  }
 
   return (
-    <div className="flex items-start gap-3 py-2 px-1">
-      <Checkbox
-        className="mt-0.5 shrink-0"
-        checked={item.checked}
-        onCheckedChange={(checked) => onUpdate(item.id, { checked: !!checked })}
-      />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={cn('text-sm font-medium', item.checked && 'line-through text-muted-foreground')}>
+    <div className="border-b last:border-b-0">
+      <div className="flex items-center gap-2 py-2 px-1">
+        <button
+          className="flex-1 flex items-center gap-2 text-left min-w-0"
+          onClick={handleRowClick}
+          aria-label={item.checked ? 'Marker som ikke købt' : 'Marker som købt'}
+        >
+          <span className={cn('text-sm font-medium truncate', item.checked && 'line-through text-muted-foreground')}>
             {item.name}
           </span>
-          {editingQty ? (
-            <Input autoFocus className="h-6 w-24 text-xs px-1" value={qty} onChange={e => setQty(e.target.value)} onBlur={commitQty} onKeyDown={e => { if (e.key === 'Enter') commitQty() }} />
-          ) : (
-            <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setEditingQty(true)}>
-              {item.quantity || <span className="opacity-40">+ mængde</span>}
-            </button>
+          <span className="text-xs text-muted-foreground opacity-50 shrink-0">{timeAgo(item.createdAt)}</span>
+          {item.quantity && (
+            <Badge variant="outline" className="text-xs shrink-0 h-5 px-1">{item.quantity}</Badge>
           )}
           {item.buyOnDiscount && (
-            <Badge variant="secondary" className="text-xs shrink-0 cursor-pointer" onClick={() => onUpdate(item.id, { buyOnDiscount: false })}>
-              Tilbud
-            </Badge>
+            <Badge variant="secondary" className="text-xs shrink-0 h-5">Tilbud</Badge>
           )}
-          {!item.buyOnDiscount && (
-            <button className="text-xs text-muted-foreground hover:text-foreground opacity-40 hover:opacity-100" onClick={() => onUpdate(item.id, { buyOnDiscount: true })} title="Marker som tilbud">
-              <Tag className="h-3 w-3" />
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          {editingNote ? (
-            <Input autoFocus className="h-6 w-48 text-xs px-1" value={note} onChange={e => setNote(e.target.value)} onBlur={commitNote} onKeyDown={e => { if (e.key === 'Enter') commitNote() }} />
-          ) : (
-            <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setEditingNote(true)}>
-              {item.note || <span className="opacity-40">+ note</span>}
-            </button>
-          )}
-          <span className="text-xs text-muted-foreground opacity-50">{timeAgo(item.createdAt)}</span>
-          {item.checked && item.checkedAt && (
-            <span className="text-xs text-muted-foreground opacity-50">· købt {timeAgo(item.checkedAt)}</span>
-          )}
-        </div>
-        {categories.length > 0 && (
-          <div className="mt-1">
-            <Select
-              value={currentCategoryId || 'none'}
-              onValueChange={(v) => onUpdate(item.id, { categoryId: v === 'none' ? null : v })}
-            >
-              <SelectTrigger className="h-6 text-xs w-36 px-2">
-                <SelectValue placeholder="Ingen kategori" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Ingen kategori</SelectItem>
-                {categories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    <span className="flex items-center gap-1.5">
-                      <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                      {cat.name}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        </button>
+        <button
+          className="h-11 w-11 flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0"
+          onClick={expanded ? onCollapse : onExpand}
+          aria-label={expanded ? 'Skjul detaljer' : 'Vis detaljer'}
+        >
+          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
       </div>
-      <button className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-destructive shrink-0" onClick={() => onDelete(item.id)} aria-label="Slet vare">
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+
+      {expanded && (
+        <div className="pl-4 pb-3 pt-2 space-y-2 border-t">
+          <div className="flex gap-2">
+            <Input
+              className="h-8 flex-1 text-sm"
+              placeholder="Mængde (fx 500g, 2 stk)"
+              value={qty}
+              onChange={e => setQty(e.target.value)}
+              onBlur={commitQty}
+              onKeyDown={e => e.key === 'Enter' && commitQty()}
+            />
+            <Input
+              className="h-8 flex-1 text-sm"
+              placeholder="Note"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              onBlur={commitNote}
+              onKeyDown={e => e.key === 'Enter' && commitNote()}
+            />
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <Checkbox
+              checked={item.buyOnDiscount}
+              onCheckedChange={(v) => onUpdate(item.id, { buyOnDiscount: !!v })}
+            />
+            <span className="text-sm">Køb på tilbud</span>
+          </label>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-7 text-xs w-full"
+            onClick={() => { onDelete(item.id); onCollapse() }}
+          >
+            Fjern vare
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
@@ -131,12 +130,13 @@ interface CategorySectionProps {
   label: string
   color?: string
   items: GroceryListItem[]
-  categories: GroceryCategory[]
-  onUpdate: (id: string, data: Partial<{ quantity: string; note: string; buyOnDiscount: boolean; checked: boolean; categoryId: string | null }>) => void
+  expandedItemId: string | null
+  onExpandItem: (id: string | null) => void
+  onUpdate: (id: string, data: Partial<{ quantity: string; note: string; buyOnDiscount: boolean; checked: boolean }>) => void
   onDelete: (id: string) => void
 }
 
-function CategorySection({ label, color, items, categories, onUpdate, onDelete }: CategorySectionProps) {
+function CategorySection({ label, color, items, expandedItemId, onExpandItem, onUpdate, onDelete }: CategorySectionProps) {
   if (items.length === 0) return null
   return (
     <div className="mb-3">
@@ -145,9 +145,17 @@ function CategorySection({ label, color, items, categories, onUpdate, onDelete }
         <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
         <span className="text-xs text-muted-foreground">({items.length})</span>
       </div>
-      <div className="divide-y">
+      <div className="border rounded-md overflow-hidden">
         {items.map(item => (
-          <GroceryItemRow key={item.id} item={item} categories={categories} onUpdate={onUpdate} onDelete={onDelete} />
+          <GroceryItemRow
+            key={item.id}
+            item={item}
+            expanded={expandedItemId === item.id}
+            onExpand={() => onExpandItem(item.id)}
+            onCollapse={() => onExpandItem(null)}
+            onUpdate={onUpdate}
+            onDelete={onDelete}
+          />
         ))}
       </div>
     </div>
@@ -160,14 +168,16 @@ interface ProductSearchProps {
   onItemAdded: () => void
 }
 
-function ProductSearch({ categories, listId, onItemAdded }: ProductSearchProps) {
+function ProductSearch({ listId, onItemAdded }: ProductSearchProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GroceryProduct[]>([])
-  const [editingProductId, setEditingProductId] = useState<string | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editCategoryId, setEditCategoryId] = useState<string>('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const queryClient = useQueryClient()
+
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ['grocery-products-all'],
+    queryFn: () => api.groceries.searchProducts(''),
+  })
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -179,11 +189,14 @@ function ProductSearch({ categories, listId, onItemAdded }: ProductSearchProps) 
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [query])
 
+  const displayedProducts = query.length > 0 ? results : allProducts
+
   const addItemMutation = useMutation({
     mutationFn: (product: GroceryProduct) =>
       api.groceries.addItem(listId, { name: product.name, productId: product.id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groceries'] })
+      queryClient.invalidateQueries({ queryKey: ['grocery-products-all'] })
       setQuery('')
       setResults([])
       onItemAdded()
@@ -195,43 +208,14 @@ function ProductSearch({ categories, listId, onItemAdded }: ProductSearchProps) 
       api.groceries.addItem(listId, { name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groceries'] })
+      queryClient.invalidateQueries({ queryKey: ['grocery-products-all'] })
       setQuery('')
       setResults([])
       onItemAdded()
     },
   })
 
-  const updateProductMutation = useMutation({
-    mutationFn: ({ id, name, categoryId }: { id: string; name: string; categoryId: string | null }) =>
-      api.groceries.updateProduct(id, { name, categoryId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groceries'] })
-      setEditingProductId(null)
-      if (query.length >= 1) {
-        api.groceries.searchProducts(query).then(setResults)
-      }
-    },
-  })
-
-  const startEdit = (product: GroceryProduct) => {
-    setEditingProductId(product.id)
-    setEditName(product.name)
-    setEditCategoryId(product.category?.id ?? '')
-  }
-
-  const cancelEdit = () => {
-    setEditingProductId(null)
-  }
-
-  const saveEdit = (productId: string) => {
-    updateProductMutation.mutate({
-      id: productId,
-      name: editName.trim(),
-      categoryId: editCategoryId || null,
-    })
-  }
-
-  const exactMatch = results.some(r => r.name.toLowerCase() === query.toLowerCase())
+  const exactMatch = displayedProducts.some(r => r.name.toLowerCase() === query.toLowerCase())
 
   return (
     <div className="space-y-2">
@@ -261,87 +245,36 @@ function ProductSearch({ categories, listId, onItemAdded }: ProductSearchProps) 
         )}
       </div>
 
-      {query.length > 0 && (
-        <div className="border rounded-md divide-y bg-card shadow-sm">
-          {results.map(product => (
-            <div key={product.id}>
-              <div className="flex items-center gap-2 px-3 py-2 hover:bg-accent/50">
-                <button
-                  className="flex items-center gap-2 flex-1 text-left min-w-0"
-                  onClick={() => addItemMutation.mutate(product)}
-                  disabled={addItemMutation.isPending}
-                >
-                  {product.category && (
-                    <span className="inline-block h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: product.category.color }} />
-                  )}
-                  <span className="text-sm font-medium truncate">{product.name}</span>
-                  {product.category && (
-                    <span className="text-xs text-muted-foreground ml-auto shrink-0">{product.category.name}</span>
-                  )}
-                </button>
-                <button
-                  className="text-xs text-muted-foreground hover:text-foreground shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded border"
-                  onClick={() => editingProductId === product.id ? cancelEdit() : startEdit(product)}
-                  aria-label="Rediger produkt"
-                >
-                  <Pencil className="h-3 w-3" />
-                  Rediger
-                </button>
-              </div>
-              {editingProductId === product.id && (
-                <div className="px-3 pb-3 pt-1 space-y-2 bg-muted/30">
-                  <Input
-                    className="h-7 text-sm"
-                    value={editName}
-                    onChange={e => setEditName(e.target.value)}
-                    placeholder="Produktnavn..."
-                  />
-                  <Select value={editCategoryId || 'none'} onValueChange={v => setEditCategoryId(v === 'none' ? '' : v)}>
-                    <SelectTrigger className="h-7 text-xs">
-                      <SelectValue placeholder="Ingen kategori" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Ingen kategori</SelectItem>
-                      {categories.map(cat => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          <span className="flex items-center gap-1.5">
-                            <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                            {cat.name}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => saveEdit(product.id)}
-                      disabled={!editName.trim() || updateProductMutation.isPending}
-                    >
-                      Gem
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={cancelEdit}>
-                      Annuller
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {!exactMatch && query.trim() && (
+      <div className="border rounded-md divide-y bg-card shadow-sm max-h-64 overflow-y-auto scrollbar-thin">
+        {displayedProducts.map(product => (
+          <div key={product.id} className="flex items-center gap-2 px-3 py-2 hover:bg-accent/50">
             <button
-              className="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 flex items-center gap-2 text-muted-foreground"
-              onClick={() => createItemMutation.mutate(query.trim())}
-              disabled={createItemMutation.isPending}
+              className="flex items-center gap-2 flex-1 text-left min-w-0"
+              onClick={() => addItemMutation.mutate(product)}
+              disabled={addItemMutation.isPending}
             >
-              <Plus className="h-3.5 w-3.5" />
-              Opret ny vare: <span className="font-medium text-foreground ml-1">{query}</span>
+              {product.category && (
+                <span className="inline-block h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: product.category.color }} />
+              )}
+              <span className="text-sm font-medium truncate">{product.name}</span>
+              {product.category && (
+                <span className="text-xs text-muted-foreground ml-auto shrink-0">{product.category.name}</span>
+              )}
             </button>
-          )}
-        </div>
-      )}
+          </div>
+        ))}
+
+        {!exactMatch && query.trim() && (
+          <button
+            className="w-full text-left px-3 py-2 text-sm hover:bg-accent/50 flex items-center gap-2 text-muted-foreground"
+            onClick={() => createItemMutation.mutate(query.trim())}
+            disabled={createItemMutation.isPending}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Opret ny vare: <span className="font-medium text-foreground ml-1">{query}</span>
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -374,6 +307,7 @@ export default function Groceries() {
   const [categoryEditorOpen, setCategoryEditorOpen] = useState(false)
   const [addFromMealTarget, setAddFromMealTarget] = useState<Meal | null>(null)
   const [showBoughtSection, setShowBoughtSection] = useState(false)
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
 
   const updateItemMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<{ quantity: string; note: string; buyOnDiscount: boolean; checked: boolean; categoryId: string | null }> }) =>
@@ -474,13 +408,29 @@ export default function Groceries() {
           {sortedCategories.map(cat => {
             const items = categorySections.get(cat.id) ?? []
             return (
-              <CategorySection key={cat.id} label={cat.name} color={cat.color} items={items} categories={categories} onUpdate={handleUpdate} onDelete={handleDelete} />
+              <CategorySection
+                key={cat.id}
+                label={cat.name}
+                color={cat.color}
+                items={items}
+                expandedItemId={expandedItemId}
+                onExpandItem={(id) => setExpandedItemId(id)}
+                onUpdate={handleUpdate}
+                onDelete={handleDelete}
+              />
             )
           })}
 
           {/* Items without category */}
           {noCatItems.length > 0 && (
-            <CategorySection label="Ingen kategori" items={noCatItems} categories={categories} onUpdate={handleUpdate} onDelete={handleDelete} />
+            <CategorySection
+              label="Ingen kategori"
+              items={noCatItems}
+              expandedItemId={expandedItemId}
+              onExpandItem={(id) => setExpandedItemId(id)}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+            />
           )}
 
           {checkedItems.length > 0 && (
@@ -493,9 +443,17 @@ export default function Groceries() {
                 {showBoughtSection ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
               </button>
               {showBoughtSection && (
-                <div className="divide-y opacity-60">
+                <div className="opacity-60 border rounded-md overflow-hidden">
                   {checkedItems.map(item => (
-                    <GroceryItemRow key={item.id} item={item} categories={categories} onUpdate={handleUpdate} onDelete={handleDelete} />
+                    <GroceryItemRow
+                      key={item.id}
+                      item={item}
+                      expanded={expandedItemId === item.id}
+                      onExpand={() => setExpandedItemId(item.id)}
+                      onCollapse={() => setExpandedItemId(null)}
+                      onUpdate={handleUpdate}
+                      onDelete={handleDelete}
+                    />
                   ))}
                 </div>
               )}

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag } from '@/types'
+import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag, AulaToken } from '@/types'
 
 
 const client = axios.create({
@@ -222,6 +222,26 @@ export const api = {
     },
     async updateProduct(id: string, input: { name?: string; categoryId?: string | null }): Promise<GroceryProduct> {
       const { data } = await client.patch(`/api/groceries/products/${id}`, input)
+      return data
+    },
+  },
+  aula: {
+    async getToken(): Promise<AulaToken | null> {
+      try {
+        const { data } = await client.get('/api/aula/token')
+        return data
+      } catch {
+        return null
+      }
+    },
+    async saveToken(accessToken: string, refreshToken?: string): Promise<void> {
+      await client.post('/api/aula/token', { accessToken, refreshToken })
+    },
+    async deleteToken(): Promise<void> {
+      await client.delete('/api/aula/token')
+    },
+    async verifyToken(): Promise<{ valid: boolean; profile?: unknown }> {
+      const { data } = await client.get('/api/aula/token/verify')
       return data
     },
   },

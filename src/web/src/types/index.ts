@@ -127,6 +127,12 @@ export interface GroceryList {
   items: GroceryListItem[]
 }
 
+export interface AulaToken {
+  accessToken: string
+  refreshToken?: string | null
+  expiresAt?: string | null
+}
+
 export interface GroceryListItem {
   id: string
   listId: string

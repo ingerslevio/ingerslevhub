@@ -180,6 +180,18 @@ export async function runMigrations() {
   // Make admin
   await sql`UPDATE users SET role = 'admin' WHERE email = 'emil@ingerslev.io'`;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS aula_tokens (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      access_token TEXT NOT NULL,
+      refresh_token TEXT,
+      expires_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `;
+
   console.log('Migrations complete.');
   await sql.end();
 }

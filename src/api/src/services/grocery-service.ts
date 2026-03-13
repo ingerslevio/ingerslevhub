@@ -1,4 +1,4 @@
-import { eq, and, ilike, isNull, asc, sql } from 'drizzle-orm';
+import { eq, and, ilike, isNull, asc, desc, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import {
   groceryLists,
@@ -255,13 +255,15 @@ export async function searchProducts(
   userId: string,
   query: string,
 ): Promise<GroceryProductWithCategory[]> {
-  if (!query) return [];
   const rows = await db
     .select({ product: groceryProducts, category: groceryCategories })
     .from(groceryProducts)
     .leftJoin(groceryCategories, eq(groceryProducts.categoryId, groceryCategories.id))
-    .where(and(eq(groceryProducts.userId, userId), ilike(groceryProducts.name, `%${query}%`)))
-    .limit(10);
+    .where(query
+      ? and(eq(groceryProducts.userId, userId), ilike(groceryProducts.name, `%${query}%`))
+      : eq(groceryProducts.userId, userId))
+    .orderBy(desc(groceryProducts.lastBoughtAt))
+    .limit(query ? 20 : 100);
   return rows.map((r) => {
     const { category: _oldCategory, ...rest } = r.product;
     return { ...rest, category: r.category ?? null };

@@ -157,5 +157,17 @@ export type GroceryList = typeof groceryLists.$inferSelect;
 export type NewGroceryList = typeof groceryLists.$inferInsert;
 export type GroceryListItem = typeof groceryListItems.$inferSelect;
 export type NewGroceryListItem = typeof groceryListItems.$inferInsert;
+export const aulaTokens = pgTable('aula_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  accessToken: text('access_token').notNull(),
+  refreshToken: text('refresh_token'),
+  expiresAt: timestamp('expires_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export type RecipeTag = typeof recipeTags.$inferSelect;
 export type NewRecipeTag = typeof recipeTags.$inferInsert;
+export type AulaToken = typeof aulaTokens.$inferSelect;
+export type NewAulaToken = typeof aulaTokens.$inferInsert;
