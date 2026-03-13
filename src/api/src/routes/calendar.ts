@@ -42,6 +42,11 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
         ? { userId: user.id, refreshToken: user.refreshToken }
         : undefined;
 
+      // Google Calendar API requires RFC3339 datetime strings
+      const toRFC3339 = (d: string) => d.includes('T') ? d : `${d}T00:00:00Z`;
+      const timeMin = toRFC3339(start);
+      const timeMax = toRFC3339(end);
+
       let calendarIds: string[] = [];
       try {
         const parsed = JSON.parse(user.selectedCalendarIds ?? '[]');
@@ -60,7 +65,7 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
 
       const results = await Promise.all(
         calendarIds.map((calId) =>
-          calendarService.listEvents(user.accessToken!, calId, start, end, tokenCtx),
+          calendarService.listEvents(user.accessToken!, calId, timeMin, timeMax, tokenCtx),
         ),
       );
 

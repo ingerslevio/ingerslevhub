@@ -15,14 +15,14 @@ const DAYS = [
   { key: 'wednesday', label: 'Onsdag' },
   { key: 'thursday', label: 'Torsdag' },
   { key: 'friday', label: 'Fredag' },
-  { key: 'saturday', label: 'Lordag' },
-  { key: 'sunday', label: 'Sondag' },
+  { key: 'saturday', label: 'Lørdag' },
+  { key: 'sunday', label: 'Søndag' },
 ] as const
 
 function daysAgo(iso: string): string {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
   if (days === 0) return 'i dag'
-  if (days === 1) return 'i gar'
+  if (days === 1) return 'i går'
   return `${days} dage siden`
 }
 
@@ -71,7 +71,7 @@ export default function MealPlan() {
         title: recipe.name,
         mealPlanId,
         recipeId: recipe.id,
-        personCount: recipe.servings,
+        personCount: recipe.servings ?? undefined,
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['meals', weekKey] }),
   })
