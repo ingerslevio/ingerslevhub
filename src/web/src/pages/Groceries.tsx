@@ -546,7 +546,7 @@ export default function Groceries() {
                 {showBoughtSection ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
               </button>
               {showBoughtSection && (
-                <div className="opacity-60 border rounded-md overflow-hidden">
+                <div className="opacity-60 border rounded-md overflow-hidden max-h-64 overflow-y-auto">
                   {checkedItems.map(item => (
                     <GroceryItemRow key={item.id} item={item}
                       expanded={expandedItemId === item.id}
@@ -561,8 +561,8 @@ export default function Groceries() {
         </div>
       )}
 
-      {/* Product search / kept list */}
-      <div className="fixed bottom-16 left-0 right-0 md:static md:bottom-auto border-t md:border md:rounded-lg bg-card p-4 shadow-lg md:shadow-none z-20">
+      {/* Product search */}
+      <div className="border rounded-lg bg-card p-4">
         {list && (
           <ProductSearch
             categories={categories}
