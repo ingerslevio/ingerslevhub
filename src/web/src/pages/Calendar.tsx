@@ -38,13 +38,22 @@ export default function Calendar() {
     queryKey: ['user'],
     queryFn: async () => {
       const u = await api.auth.me()
-      if (u.selectedCalendarIds) {
-        const ids = u.selectedCalendarIds.split(',').filter(Boolean)
-        setSavedCalIds(ids)
-        setSelectedCalIds(ids)
-      } else if (u.selectedCalendarId) {
-        setSavedCalIds([u.selectedCalendarId])
-        setSelectedCalIds([u.selectedCalendarId])
+      try {
+        const stored = typeof u.selectedCalendarIds === 'string'
+          ? JSON.parse(u.selectedCalendarIds) as string[]
+          : []
+        if (Array.isArray(stored) && stored.length > 0) {
+          setSavedCalIds(stored)
+          setSelectedCalIds(stored)
+        } else if (u.selectedCalendarId) {
+          setSavedCalIds([u.selectedCalendarId])
+          setSelectedCalIds([u.selectedCalendarId])
+        }
+      } catch {
+        if (u.selectedCalendarId) {
+          setSavedCalIds([u.selectedCalendarId])
+          setSelectedCalIds([u.selectedCalendarId])
+        }
       }
       return u
     },
@@ -72,8 +81,9 @@ export default function Calendar() {
         setCalAuthError(false)
         return result
       } catch (err: unknown) {
-        const axiosError = err as { response?: { status?: number } }
-        if (axiosError?.response?.status === 401) {
+        const axiosError = err as { response?: { status?: number; data?: { code?: string } } }
+        const status = axiosError?.response?.status
+        if (status === 401 || status === 403) {
           setCalAuthError(true)
         }
         throw err

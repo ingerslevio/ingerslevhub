@@ -10,6 +10,7 @@ const MealPlan = React.lazy(() => import('./pages/MealPlan'))
 const Homework = React.lazy(() => import('./pages/Homework'))
 const Calendar = React.lazy(() => import('./pages/Calendar'))
 const Groceries = React.lazy(() => import('./pages/Groceries'))
+const Recipes = React.lazy(() => import('./pages/Recipes'))
 const Login = React.lazy(() => import('./pages/Login'))
 
 const queryClient = new QueryClient({
@@ -28,6 +29,7 @@ const pageTitles: Record<string, string> = {
   '/homework': 'Lektier',
   '/calendar': 'Kalender',
   '/groceries': 'Indkobsliste',
+  '/recipes': 'Opskrifter',
 }
 
 function AuthenticatedRoutes() {
@@ -66,6 +68,7 @@ function AuthenticatedRoutes() {
           <Route path="/homework" element={<Homework />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/groceries" element={<Groceries />} />
+          <Route path="/recipes" element={<Recipes />} />
         </Routes>
       </Suspense>
     </Shell>

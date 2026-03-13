@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, timestamp, boolean, date, integer } from 'drizzle-orm/pg-core';
+import { pgTable, text, uuid, timestamp, boolean, date, integer, real } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const users = pgTable('users', {
@@ -47,6 +47,8 @@ export const meals = pgTable('meals', {
   title: text('title').notNull(),
   notes: text('notes'),
   recipeId: uuid('recipe_id').references(() => recipes.id, { onDelete: 'set null' }),
+  rating: integer('rating'),
+  personCount: integer('person_count'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -72,6 +74,11 @@ export const recipes = pgTable('recipes', {
   prepTimeMinutes: integer('prep_time_minutes'),
   cookTimeMinutes: integer('cook_time_minutes'),
   servings: integer('servings'),
+  imageUrl: text('image_url'),
+  sourceUrl: text('source_url'),
+  tags: text('tags').default('[]').notNull(),
+  ratingSum: real('rating_sum').default(0).notNull(),
+  ratingCount: integer('rating_count').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -112,6 +119,16 @@ export const groceryListItems = pgTable('grocery_list_items', {
   buyOnDiscount: boolean('buy_on_discount').default(false).notNull(),
   checked: boolean('checked').default(false).notNull(),
   checkedAt: timestamp('checked_at'),
+  mealId: uuid('meal_id').references(() => meals.id, { onDelete: 'set null' }),
+  recipeId: uuid('recipe_id').references(() => recipes.id, { onDelete: 'set null' }),
+  categoryId: uuid('category_id').references(() => groceryCategories.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const recipeTags = pgTable('recipe_tags', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -134,4 +151,8 @@ export type NewGroceryCategory = typeof groceryCategories.$inferInsert;
 export type GroceryProduct = typeof groceryProducts.$inferSelect;
 export type NewGroceryProduct = typeof groceryProducts.$inferInsert;
 export type GroceryList = typeof groceryLists.$inferSelect;
+export type NewGroceryList = typeof groceryLists.$inferInsert;
 export type GroceryListItem = typeof groceryListItems.$inferSelect;
+export type NewGroceryListItem = typeof groceryListItems.$inferInsert;
+export type RecipeTag = typeof recipeTags.$inferSelect;
+export type NewRecipeTag = typeof recipeTags.$inferInsert;

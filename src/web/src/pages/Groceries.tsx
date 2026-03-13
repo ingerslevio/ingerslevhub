@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Trash2, Plus, ChevronDown, ChevronUp, Tag } from 'lucide-react'
+import { format, startOfWeek } from 'date-fns'
+import { Trash2, Plus, ChevronDown, ChevronUp, Tag, Settings2, ShoppingCart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -8,8 +9,10 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { api } from '@/lib/api'
-import type { GroceryListItem, GroceryProduct, GroceryCategory } from '@/types'
+import type { GroceryListItem, GroceryProduct, GroceryCategory, Meal } from '@/types'
 import { cn } from '@/lib/utils'
+import { CategoryEditor } from '@/components/groceries/CategoryEditor'
+import { AddFromMealDialog } from '@/components/groceries/AddFromMealDialog'
 
 function timeAgo(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -18,6 +21,11 @@ function timeAgo(iso: string): string {
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `${hrs} t`
   return `${Math.floor(hrs / 24)} d`
+}
+
+const DAY_LABELS: Record<string, string> = {
+  monday: 'Mandag', tuesday: 'Tirsdag', wednesday: 'Onsdag', thursday: 'Torsdag',
+  friday: 'Fredag', saturday: 'Lordag', sunday: 'Sondag',
 }
 
 interface GroceryItemRowProps {
@@ -34,16 +42,12 @@ function GroceryItemRow({ item, onUpdate, onDelete }: GroceryItemRowProps) {
 
   const commitQty = () => {
     setEditingQty(false)
-    if (qty !== (item.quantity ?? '')) {
-      onUpdate(item.id, { quantity: qty || undefined })
-    }
+    if (qty !== (item.quantity ?? '')) onUpdate(item.id, { quantity: qty || undefined })
   }
 
   const commitNote = () => {
     setEditingNote(false)
-    if (note !== (item.note ?? '')) {
-      onUpdate(item.id, { note: note || undefined })
-    }
+    if (note !== (item.note ?? '')) onUpdate(item.id, { note: note || undefined })
   }
 
   return (
@@ -59,74 +63,38 @@ function GroceryItemRow({ item, onUpdate, onDelete }: GroceryItemRowProps) {
             {item.name}
           </span>
           {editingQty ? (
-            <Input
-              autoFocus
-              className="h-6 w-24 text-xs px-1"
-              value={qty}
-              onChange={e => setQty(e.target.value)}
-              onBlur={commitQty}
-              onKeyDown={e => { if (e.key === 'Enter') commitQty() }}
-            />
+            <Input autoFocus className="h-6 w-24 text-xs px-1" value={qty} onChange={e => setQty(e.target.value)} onBlur={commitQty} onKeyDown={e => { if (e.key === 'Enter') commitQty() }} />
           ) : (
-            <button
-              className="text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setEditingQty(true)}
-            >
+            <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setEditingQty(true)}>
               {item.quantity || <span className="opacity-40">+ maengde</span>}
             </button>
           )}
           {item.buyOnDiscount && (
-            <Badge
-              variant="secondary"
-              className="text-xs shrink-0 cursor-pointer"
-              onClick={() => onUpdate(item.id, { buyOnDiscount: false })}
-            >
+            <Badge variant="secondary" className="text-xs shrink-0 cursor-pointer" onClick={() => onUpdate(item.id, { buyOnDiscount: false })}>
               Tilbud
             </Badge>
           )}
           {!item.buyOnDiscount && (
-            <button
-              className="text-xs text-muted-foreground hover:text-foreground opacity-40 hover:opacity-100"
-              onClick={() => onUpdate(item.id, { buyOnDiscount: true })}
-              title="Marker som tilbud"
-            >
+            <button className="text-xs text-muted-foreground hover:text-foreground opacity-40 hover:opacity-100" onClick={() => onUpdate(item.id, { buyOnDiscount: true })} title="Marker som tilbud">
               <Tag className="h-3 w-3" />
             </button>
           )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {editingNote ? (
-            <Input
-              autoFocus
-              className="h-6 w-48 text-xs px-1"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              onBlur={commitNote}
-              onKeyDown={e => { if (e.key === 'Enter') commitNote() }}
-            />
+            <Input autoFocus className="h-6 w-48 text-xs px-1" value={note} onChange={e => setNote(e.target.value)} onBlur={commitNote} onKeyDown={e => { if (e.key === 'Enter') commitNote() }} />
           ) : (
-            <button
-              className="text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setEditingNote(true)}
-            >
+            <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setEditingNote(true)}>
               {item.note || <span className="opacity-40">+ note</span>}
             </button>
           )}
-          <span className="text-xs text-muted-foreground opacity-50">
-            {timeAgo(item.createdAt)}
-          </span>
+          <span className="text-xs text-muted-foreground opacity-50">{timeAgo(item.createdAt)}</span>
           {item.checked && item.checkedAt && (
-            <span className="text-xs text-muted-foreground opacity-50">
-              · koebt {timeAgo(item.checkedAt)}
-            </span>
+            <span className="text-xs text-muted-foreground opacity-50">· koebt {timeAgo(item.checkedAt)}</span>
           )}
         </div>
       </div>
-      <button
-        className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-destructive shrink-0"
-        onClick={() => onDelete(item.id)}
-        aria-label="Slet vare"
-      >
+      <button className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-destructive shrink-0" onClick={() => onDelete(item.id)} aria-label="Slet vare">
         <Trash2 className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -146,15 +114,8 @@ function CategorySection({ label, color, items, onUpdate, onDelete }: CategorySe
   return (
     <div className="mb-3">
       <div className="flex items-center gap-2 mb-1 px-1">
-        {color && (
-          <span
-            className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
-            style={{ backgroundColor: color }}
-          />
-        )}
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {label}
-        </span>
+        {color && <span className="inline-block h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />}
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
         <span className="text-xs text-muted-foreground">({items.length})</span>
       </div>
       <div className="divide-y">
@@ -180,7 +141,20 @@ export default function Groceries() {
     queryFn: () => api.groceries.listCategories(),
   })
 
-  // Add item form state
+  const currentWeekKey = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  const { data: mealPlan } = useQuery({
+    queryKey: ['meals', currentWeekKey],
+    queryFn: () => api.meals.getWeek(currentWeekKey),
+  })
+
+  const mealsWithRecipes = useMemo(() => {
+    if (!mealPlan?.meals) return []
+    return mealPlan.meals.filter(m => m.recipe && m.recipe.ingredients && m.recipe.ingredients !== '[]')
+  }, [mealPlan])
+
+  const [categoryEditorOpen, setCategoryEditorOpen] = useState(false)
+  const [addFromMealTarget, setAddFromMealTarget] = useState<Meal | null>(null)
+
   const [itemName, setItemName] = useState('')
   const [itemQuantity, setItemQuantity] = useState('')
   const [itemNote, setItemNote] = useState('')
@@ -190,11 +164,6 @@ export default function Groceries() {
   const [selectedProduct, setSelectedProduct] = useState<GroceryProduct | null>(null)
   const [showBoughtSection, setShowBoughtSection] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // New category form state
-  const [showAddCategory, setShowAddCategory] = useState(false)
-  const [newCategoryName, setNewCategoryName] = useState('')
-  const [newCategoryColor, setNewCategoryColor] = useState('#6366f1')
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -217,12 +186,7 @@ export default function Groceries() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groceries'] })
-      setItemName('')
-      setItemQuantity('')
-      setItemNote('')
-      setBuyOnDiscount(false)
-      setSuggestions([])
-      setSelectedProduct(null)
+      setItemName(''); setItemQuantity(''); setItemNote(''); setBuyOnDiscount(false); setSuggestions([]); setSelectedProduct(null)
     },
   })
 
@@ -242,125 +206,76 @@ export default function Groceries() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groceries'] }),
   })
 
-  const generateMutation = useMutation({
-    mutationFn: () => api.groceries.generateFromMealPlan(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groceries'] }),
-  })
-
-  const addCategoryMutation = useMutation({
-    mutationFn: () => api.groceries.createCategory({ name: newCategoryName, color: newCategoryColor }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['grocery-categories'] })
-      setNewCategoryName('')
-      setShowAddCategory(false)
-    },
-  })
-
   const handleSelectSuggestion = (product: GroceryProduct) => {
-    setItemName(product.name)
-    setSelectedProduct(product)
-    setShowSuggestions(false)
+    setItemName(product.name); setSelectedProduct(product); setShowSuggestions(false)
   }
 
   const handleUpdate = (id: string, data: Partial<{ quantity: string; note: string; buyOnDiscount: boolean; checked: boolean }>) => {
     updateItemMutation.mutate({ id, data })
   }
 
-  const handleDelete = (id: string) => {
-    deleteItemMutation.mutate(id)
-  }
+  const handleDelete = (id: string) => deleteItemMutation.mutate(id)
 
-  // Group unchecked items - without server-side category join, all items go in one group
-  const uncheckedNoCat = useMemo(() => {
-    return list?.items.filter(i => !i.checked) ?? []
-  }, [list])
+  // Group unchecked items by category
+  const uncheckedItems = useMemo(() => list?.items.filter(i => !i.checked) ?? [], [list])
+  const checkedItems = useMemo(() => list?.items.filter(i => i.checked) ?? [], [list])
 
-  const checkedItems = list?.items.filter(i => i.checked) ?? []
-  const uncheckedCount = list?.items.filter(i => !i.checked).length ?? 0
+  const categorySections = useMemo(() => {
+    const catMap = new Map<string | null, GroceryListItem[]>()
+    for (const item of uncheckedItems) {
+      const catId = item.category?.id ?? item.effectiveCategoryId ?? null
+      if (!catMap.has(catId)) catMap.set(catId, [])
+      catMap.get(catId)!.push(item)
+    }
+    return catMap
+  }, [uncheckedItems])
+
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.sortOrder - b.sortOrder),
+    [categories]
+  )
+
+  const noCatItems = categorySections.get(null) ?? []
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Indkobsliste</h1>
         <div className="flex items-center gap-2">
           {checkedItems.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => clearBoughtMutation.mutate()}
-              disabled={clearBoughtMutation.isPending}
-            >
+            <Button variant="outline" size="sm" onClick={() => clearBoughtMutation.mutate()} disabled={clearBoughtMutation.isPending}>
               <Trash2 className="h-4 w-4 mr-1" />
               Ryd koebt
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => generateMutation.mutate()}
-            disabled={generateMutation.isPending}
-          >
-            <RefreshCw className={cn('h-4 w-4 mr-1', generateMutation.isPending && 'animate-spin')} />
-            Fra madplan
+          <Button variant="outline" size="sm" onClick={() => setCategoryEditorOpen(true)}>
+            <Settings2 className="h-4 w-4 mr-1" />
+            Rediger Kategorier
           </Button>
         </div>
       </div>
 
-      {/* Categories management */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {categories.map(cat => (
-          <Badge
-            key={cat.id}
-            variant="outline"
-            className="text-xs"
-            style={{ borderColor: cat.color, color: cat.color }}
-          >
-            {cat.name}
-          </Badge>
-        ))}
-        <button
-          className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-          onClick={() => setShowAddCategory(v => !v)}
-        >
-          + Tilfoej kategori
-        </button>
-      </div>
-
-      {showAddCategory && (
-        <div className="flex items-center gap-2 border rounded-md p-3">
-          <Input
-            className="h-8 text-sm"
-            placeholder="Kategorinavn..."
-            value={newCategoryName}
-            onChange={e => setNewCategoryName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && newCategoryName) addCategoryMutation.mutate() }}
-          />
-          <input
-            type="color"
-            value={newCategoryColor}
-            onChange={e => setNewCategoryColor(e.target.value)}
-            className="h-8 w-10 rounded border cursor-pointer"
-            title="Vaelg farve"
-          />
-          <Button
-            size="sm"
-            onClick={() => addCategoryMutation.mutate()}
-            disabled={!newCategoryName || addCategoryMutation.isPending}
-          >
-            Gem
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setShowAddCategory(false)}
-          >
-            Annuller
-          </Button>
+      {/* Fra madplan section */}
+      {mealsWithRecipes.length > 0 && (
+        <div className="border rounded-lg p-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+            <ShoppingCart className="h-3.5 w-3.5" />
+            Fra madplan
+          </p>
+          {mealsWithRecipes.map(meal => (
+            <div key={meal.id} className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <span className="text-xs text-muted-foreground">{DAY_LABELS[meal.dayOfWeek] ?? meal.dayOfWeek}: </span>
+                <span className="text-sm font-medium truncate">{meal.recipe?.name ?? meal.title}</span>
+              </div>
+              <Button size="sm" variant="outline" className="shrink-0 text-xs h-7" onClick={() => setAddFromMealTarget(meal)}>
+                Tilfoej
+              </Button>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Items list */}
       {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -369,47 +284,38 @@ export default function Groceries() {
         </div>
       ) : (
         <div>
-          {uncheckedCount === 0 && checkedItems.length === 0 && (
+          {uncheckedItems.length === 0 && checkedItems.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-10">
               Indkobslisten er tom
             </p>
           )}
 
-          {/* Unchecked items - grouped by category */}
-          {uncheckedNoCat.length > 0 && (
-            <CategorySection
-              label="Varer"
-              items={uncheckedNoCat}
-              onUpdate={handleUpdate}
-              onDelete={handleDelete}
-            />
+          {/* Grouped by category */}
+          {sortedCategories.map(cat => {
+            const items = categorySections.get(cat.id) ?? []
+            return (
+              <CategorySection key={cat.id} label={cat.name} color={cat.color} items={items} onUpdate={handleUpdate} onDelete={handleDelete} />
+            )
+          })}
+
+          {/* Items without category */}
+          {noCatItems.length > 0 && (
+            <CategorySection label="Ingen kategori" items={noCatItems} onUpdate={handleUpdate} onDelete={handleDelete} />
           )}
 
-          {/* Checked / bought section */}
           {checkedItems.length > 0 && (
             <>
               <Separator className="my-3" />
-              <button
-                className="flex items-center gap-2 w-full text-left px-1 mb-2"
-                onClick={() => setShowBoughtSection(v => !v)}
-              >
+              <button className="flex items-center gap-2 w-full text-left px-1 mb-2" onClick={() => setShowBoughtSection(v => !v)}>
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Koebt ({checkedItems.length})
                 </span>
-                {showBoughtSection
-                  ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
-                  : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                }
+                {showBoughtSection ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
               </button>
               {showBoughtSection && (
                 <div className="divide-y opacity-60">
                   {checkedItems.map(item => (
-                    <GroceryItemRow
-                      key={item.id}
-                      item={item}
-                      onUpdate={handleUpdate}
-                      onDelete={handleDelete}
-                    />
+                    <GroceryItemRow key={item.id} item={item} onUpdate={handleUpdate} onDelete={handleDelete} />
                   ))}
                 </div>
               )}
@@ -418,7 +324,7 @@ export default function Groceries() {
         </div>
       )}
 
-      {/* Add item form - sticky on mobile */}
+      {/* Add item form */}
       <div className="fixed bottom-16 left-0 right-0 md:static md:bottom-auto border-t md:border md:rounded-lg bg-card p-4 space-y-3 shadow-lg md:shadow-none z-20">
         <p className="text-sm font-semibold flex items-center gap-1">
           <Plus className="h-4 w-4" />
@@ -431,28 +337,15 @@ export default function Groceries() {
             onChange={e => { setItemName(e.target.value); setSelectedProduct(null) }}
             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && itemName && list) addItemMutation.mutate()
-            }}
+            onKeyDown={e => { if (e.key === 'Enter' && itemName && list) addItemMutation.mutate() }}
           />
           {showSuggestions && (
             <div className="absolute z-10 w-full bg-background border rounded-md shadow-md mt-1">
               {suggestions.map(s => (
-                <button
-                  key={s.id}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2"
-                  onMouseDown={() => handleSelectSuggestion(s)}
-                >
-                  {s.category && (
-                    <span
-                      className="inline-block h-2 w-2 rounded-full shrink-0"
-                      style={{ backgroundColor: s.category.color }}
-                    />
-                  )}
+                <button key={s.id} className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center gap-2" onMouseDown={() => handleSelectSuggestion(s)}>
+                  {s.category && <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: s.category.color }} />}
                   <span>{s.name}</span>
-                  {s.category && (
-                    <span className="text-xs text-muted-foreground ml-auto">{s.category.name}</span>
-                  )}
+                  {s.category && <span className="text-xs text-muted-foreground ml-auto">{s.category.name}</span>}
                 </button>
               ))}
             </div>
@@ -461,48 +354,36 @@ export default function Groceries() {
         {selectedProduct?.category && (
           <div className="flex items-center gap-1">
             <span className="text-xs text-muted-foreground">Kategori:</span>
-            <Badge
-              variant="outline"
-              className="text-xs"
-              style={{ borderColor: selectedProduct.category.color, color: selectedProduct.category.color }}
-            >
+            <Badge variant="outline" className="text-xs" style={{ borderColor: selectedProduct.category.color, color: selectedProduct.category.color }}>
               {selectedProduct.category.name}
             </Badge>
           </div>
         )}
         <div className="flex gap-2">
-          <Input
-            placeholder="Maengde (f.eks. 500g)"
-            value={itemQuantity}
-            onChange={e => setItemQuantity(e.target.value)}
-            className="flex-1"
-          />
-          <Input
-            placeholder="Note"
-            value={itemNote}
-            onChange={e => setItemNote(e.target.value)}
-            className="flex-1"
-          />
+          <Input placeholder="Maengde (f.eks. 500g)" value={itemQuantity} onChange={e => setItemQuantity(e.target.value)} className="flex-1" />
+          <Input placeholder="Note" value={itemNote} onChange={e => setItemNote(e.target.value)} className="flex-1" />
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Checkbox
-              id="discount"
-              checked={buyOnDiscount}
-              onCheckedChange={c => setBuyOnDiscount(!!c)}
-            />
+            <Checkbox id="discount" checked={buyOnDiscount} onCheckedChange={c => setBuyOnDiscount(!!c)} />
             <Label htmlFor="discount" className="text-sm">Koebes pa tilbud</Label>
           </div>
-          <Button
-            size="sm"
-            onClick={() => addItemMutation.mutate()}
-            disabled={!itemName || !list || addItemMutation.isPending}
-          >
+          <Button size="sm" onClick={() => addItemMutation.mutate()} disabled={!itemName || !list || addItemMutation.isPending}>
             <Plus className="h-4 w-4 mr-1" />
             Tilfoej
           </Button>
         </div>
       </div>
+
+      <CategoryEditor open={categoryEditorOpen} onClose={() => setCategoryEditorOpen(false)} />
+
+      {addFromMealTarget && (
+        <AddFromMealDialog
+          open={true}
+          onClose={() => setAddFromMealTarget(null)}
+          meal={addFromMealTarget}
+        />
+      )}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory } from '@/types'
+import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag } from '@/types'
 
 const client = axios.create({
   baseURL: '',
@@ -15,19 +15,6 @@ client.interceptors.response.use(
     return Promise.reject(error)
   }
 )
-
-export interface AddMealInput {
-  dayOfWeek: Meal['dayOfWeek']
-  mealType: Meal['mealType']
-  title: string
-  notes?: string
-  mealPlanId?: string
-}
-
-export interface UpdateMealInput {
-  title?: string
-  notes?: string
-}
 
 export interface CreateTaskInput {
   studentId: string
@@ -74,11 +61,11 @@ export const api = {
       const { data } = await client.get('/api/meals/week', { params: { date } })
       return data
     },
-    async add(input: AddMealInput): Promise<Meal> {
+    async add(input: { dayOfWeek: string; mealType: string; title: string; mealPlanId: string; recipeId?: string; personCount?: number }): Promise<Meal> {
       const { data } = await client.post('/api/meals', input)
       return data
     },
-    async update(id: string, input: UpdateMealInput): Promise<Meal> {
+    async update(id: string, input: { title?: string; notes?: string; rating?: number | null; personCount?: number | null; recipeId?: string | null }): Promise<Meal> {
       const { data } = await client.put(`/api/meals/${id}`, input)
       return data
     },
@@ -143,16 +130,24 @@ export const api = {
       const { data } = await client.get('/api/recipes')
       return data
     },
-    async create(input: { name: string; description?: string; ingredients?: string; instructions?: string; prepTimeMinutes?: number; cookTimeMinutes?: number; servings?: number }): Promise<Recipe> {
+    async get(id: string): Promise<Recipe> {
+      const { data } = await client.get(`/api/recipes/${id}`)
+      return data
+    },
+    async create(input: Partial<Recipe> & { name: string }): Promise<Recipe> {
       const { data } = await client.post('/api/recipes', input)
       return data
     },
-    async update(id: string, input: Partial<{ name: string; description: string; ingredients: string; instructions: string; prepTimeMinutes: number; cookTimeMinutes: number; servings: number }>): Promise<Recipe> {
+    async update(id: string, input: Partial<Recipe>): Promise<Recipe> {
       const { data } = await client.put(`/api/recipes/${id}`, input)
       return data
     },
     async delete(id: string): Promise<void> {
       await client.delete(`/api/recipes/${id}`)
+    },
+    async listTags(q?: string): Promise<RecipeTag[]> {
+      const { data } = await client.get(`/api/recipes/tags${q ? `?q=${encodeURIComponent(q)}` : ''}`)
+      return data
     },
   },
   groceries: {
@@ -185,13 +180,23 @@ export const api = {
       const { data } = await client.get('/api/groceries/categories')
       return data
     },
-    async createCategory(input: { name: string; color?: string }): Promise<GroceryCategory> {
+    async createCategory(input: { name: string; color?: string; sortOrder?: number }): Promise<GroceryCategory> {
       const { data } = await client.post('/api/groceries/categories', input)
       return data
     },
     async updateCategory(id: string, input: Partial<{ name: string; sortOrder: number; color: string }>): Promise<GroceryCategory> {
       const { data } = await client.patch(`/api/groceries/categories/${id}`, input)
       return data
+    },
+    async deleteCategory(id: string): Promise<void> {
+      await client.delete(`/api/groceries/categories/${id}`)
+    },
+    async addItemsFromMeal(data: {
+      mealId: string
+      items: Array<{ name: string; quantity?: string; unit?: string; productId?: string; categoryId?: string; recipeId?: string }>
+    }): Promise<GroceryListItem[]> {
+      const { data: result } = await client.post('/api/groceries/list/items/from-meal', data)
+      return result
     },
   },
 }

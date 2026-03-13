@@ -66,10 +66,9 @@ export function AddMealDialog({
     try {
       await api.meals.add({
         mealPlanId,
-        dayOfWeek: day as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
-        mealType: mealType as 'breakfast' | 'lunch' | 'dinner',
+        dayOfWeek: day,
+        mealType: mealType,
         title: title.trim(),
-        notes: notes.trim() || undefined,
       })
       setTitle('')
       setNotes('')

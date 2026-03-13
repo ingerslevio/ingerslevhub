@@ -35,7 +35,7 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'start and end query params required' });
       }
       if (!user.accessToken) {
-        return reply.status(401).send({ error: 'No access token. Please re-authenticate with Google.' });
+        return reply.status(403).send({ error: 'No Google access token. Please re-authenticate with Google.', code: 'google_auth_required' });
       }
 
       const tokenCtx = user.refreshToken
@@ -76,7 +76,7 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
     }
     if (!user.accessToken) {
-      return reply.status(401).send({ error: 'No access token.' });
+      return reply.status(403).send({ error: 'No Google access token.', code: 'google_auth_required' });
     }
     if (!user.selectedCalendarId) {
       return reply.status(400).send({ error: 'No calendar selected.' });
@@ -100,7 +100,7 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
     }
     if (!user.accessToken) {
-      return reply.status(401).send({ error: 'No access token.' });
+      return reply.status(403).send({ error: 'No Google access token.', code: 'google_auth_required' });
     }
     if (!user.selectedCalendarId) {
       return reply.status(400).send({ error: 'No calendar selected.' });
@@ -121,7 +121,7 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete<{ Params: { id: string } }>('/events/:id', async (request, reply) => {
     const user = request.currentUser;
     if (!user.accessToken) {
-      return reply.status(401).send({ error: 'No access token.' });
+      return reply.status(403).send({ error: 'No Google access token.', code: 'google_auth_required' });
     }
     if (!user.selectedCalendarId) {
       return reply.status(400).send({ error: 'No calendar selected.' });
@@ -141,7 +141,7 @@ const calendarRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/calendars', async (request, reply) => {
     const user = request.currentUser;
     if (!user.accessToken) {
-      return reply.status(401).send({ error: 'No access token.' });
+      return reply.status(403).send({ error: 'No Google access token.', code: 'google_auth_required' });
     }
     const tokenCtx = user.refreshToken
       ? { userId: user.id, refreshToken: user.refreshToken }

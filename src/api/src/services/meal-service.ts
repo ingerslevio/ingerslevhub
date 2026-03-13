@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { mealPlans, meals } from '../db/schema.js';
-import type { MealPlan, Meal } from '../db/schema.js';
+import { mealPlans, meals, recipes } from '../db/schema.js';
+import type { MealPlan, Meal, Recipe } from '../db/schema.js';
 
 export function getWeekStart(dateStr: string): string {
   const date = new Date(dateStr);
@@ -15,7 +15,7 @@ export function getWeekStart(dateStr: string): string {
 export async function getOrCreateWeekPlan(
   userId: string,
   weekStart: string,
-): Promise<MealPlan & { meals: Meal[] }> {
+): Promise<MealPlan & { meals: (Meal & { recipe?: Recipe | null })[] }> {
   const mondayDate = getWeekStart(weekStart);
 
   const existing = await db
@@ -36,16 +36,26 @@ export async function getOrCreateWeekPlan(
   }
 
   const planMeals = await db
-    .select()
+    .select({ meal: meals, recipe: recipes })
     .from(meals)
+    .leftJoin(recipes, eq(meals.recipeId, recipes.id))
     .where(eq(meals.mealPlanId, plan.id));
 
-  return { ...plan, meals: planMeals };
+  const enrichedMeals = planMeals.map((r) => ({ ...r.meal, recipe: r.recipe ?? null }));
+
+  return { ...plan, meals: enrichedMeals };
 }
 
 export async function addMeal(
   mealPlanId: string,
-  data: { dayOfWeek: string; mealType: string; title: string; notes?: string; recipeId?: string },
+  data: {
+    dayOfWeek: string;
+    mealType: string;
+    title: string;
+    notes?: string;
+    recipeId?: string;
+    personCount?: number;
+  },
 ): Promise<Meal> {
   const [meal] = await db
     .insert(meals)
@@ -56,6 +66,7 @@ export async function addMeal(
       title: data.title,
       notes: data.notes ?? null,
       recipeId: data.recipeId ?? null,
+      personCount: data.personCount ?? null,
     })
     .returning();
   return meal!;
@@ -63,13 +74,24 @@ export async function addMeal(
 
 export async function updateMeal(
   id: string,
-  data: Partial<{ title: string; notes: string; dayOfWeek: string; mealType: string }>,
+  data: Partial<{
+    title: string;
+    notes: string | null;
+    dayOfWeek: string;
+    mealType: string;
+    recipeId: string | null;
+    personCount: number | null;
+    rating: number | null;
+  }>,
 ): Promise<Meal> {
   const updateData: Record<string, unknown> = {};
   if (data.title !== undefined) updateData['title'] = data.title;
   if (data.notes !== undefined) updateData['notes'] = data.notes;
   if (data.dayOfWeek !== undefined) updateData['dayOfWeek'] = data.dayOfWeek;
   if (data.mealType !== undefined) updateData['mealType'] = data.mealType;
+  if (data.recipeId !== undefined) updateData['recipeId'] = data.recipeId;
+  if (data.personCount !== undefined) updateData['personCount'] = data.personCount;
+  if (data.rating !== undefined) updateData['rating'] = data.rating;
 
   const [meal] = await db
     .update(meals)

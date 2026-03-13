@@ -9,13 +9,17 @@ const addMealSchema = z.object({
   title: z.string().min(1).max(200),
   notes: z.string().max(1000).optional(),
   recipeId: z.string().uuid().optional(),
+  personCount: z.number().int().positive().optional(),
 });
 
 const updateMealSchema = z.object({
   title: z.string().min(1).max(200).optional(),
-  notes: z.string().max(1000).optional(),
+  notes: z.string().max(1000).optional().nullable(),
   dayOfWeek: z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']).optional(),
   mealType: z.enum(['breakfast', 'lunch', 'dinner']).optional(),
+  recipeId: z.string().uuid().nullable().optional(),
+  personCount: z.number().int().positive().optional().nullable(),
+  rating: z.number().int().min(1).max(5).optional().nullable(),
 });
 
 const mealsRoutes: FastifyPluginAsync = async (fastify) => {

@@ -37,7 +37,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
               name: profile.name,
               avatarUrl: profile.avatarUrl,
               accessToken,
-              refreshToken,
+              // Only overwrite refreshToken if Google returned a new one
+              ...(refreshToken ? { refreshToken } : {}),
             })
             .where(eq(users.id, userId));
         } else {
@@ -80,7 +81,9 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       email: user.email,
       name: user.name,
       avatarUrl: user.avatarUrl,
+      apiKey: user.apiKey,
       selectedCalendarId: user.selectedCalendarId,
+      selectedCalendarIds: user.selectedCalendarIds,
       createdAt: user.createdAt,
     };
   });

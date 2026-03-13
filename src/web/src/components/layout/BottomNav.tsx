@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { Home, UtensilsCrossed, BookOpen, CalendarDays, ShoppingCart } from 'lucide-react'
+import { Home, UtensilsCrossed, BookOpen, CalendarDays, ShoppingCart, GraduationCap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const tabs = [
   { to: '/', label: 'Oversigt', icon: Home },
   { to: '/meals', label: 'Madplan', icon: UtensilsCrossed },
-  { to: '/homework', label: 'Lektier', icon: BookOpen },
+  { to: '/recipes', label: 'Opskrifter', icon: BookOpen },
+  { to: '/homework', label: 'Lektier', icon: GraduationCap },
   { to: '/calendar', label: 'Kalender', icon: CalendarDays },
   { to: '/groceries', label: 'Indkob', icon: ShoppingCart },
 ]

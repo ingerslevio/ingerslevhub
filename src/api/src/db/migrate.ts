@@ -152,6 +152,26 @@ export async function runMigrations() {
 
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS grocery_lists_active_uniq ON grocery_lists(user_id) WHERE week_start IS NULL`;
 
+  await sql`ALTER TABLE meals ADD COLUMN IF NOT EXISTS rating INTEGER`;
+  await sql`ALTER TABLE meals ADD COLUMN IF NOT EXISTS person_count INTEGER`;
+  await sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS image_url TEXT`;
+  await sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS source_url TEXT`;
+  await sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS tags TEXT NOT NULL DEFAULT '[]'`;
+  await sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS rating_sum REAL NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS rating_count INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE grocery_list_items ADD COLUMN IF NOT EXISTS meal_id UUID REFERENCES meals(id) ON DELETE SET NULL`;
+  await sql`ALTER TABLE grocery_list_items ADD COLUMN IF NOT EXISTS recipe_id UUID REFERENCES recipes(id) ON DELETE SET NULL`;
+  await sql`ALTER TABLE grocery_list_items ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES grocery_categories(id) ON DELETE SET NULL`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS recipe_tags (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, name)
+    )
+  `;
+
   console.log('Migrations complete.');
   await sql.end();
 }

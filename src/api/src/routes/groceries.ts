@@ -32,6 +32,20 @@ const updateProductCategorySchema = z.object({
   categoryId: z.string().uuid().nullable(),
 });
 
+const fromMealItemSchema = z.object({
+  name: z.string().min(1).max(200),
+  quantity: z.string().max(100).optional(),
+  unit: z.string().max(50).optional(),
+  productId: z.string().uuid().optional(),
+  categoryId: z.string().uuid().optional(),
+  recipeId: z.string().uuid().optional(),
+});
+
+const addItemsFromMealSchema = z.object({
+  mealId: z.string().uuid(),
+  items: z.array(fromMealItemSchema).min(1),
+});
+
 const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', fastify.authenticate);
 
@@ -49,6 +63,22 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
     const list = await groceryService.getOrCreateActiveList(request.currentUser.id);
     const item = await groceryService.addItem(list.id, parsed.data);
     return reply.status(201).send(item);
+  });
+
+  // POST add items from a meal to active list
+  fastify.post('/list/items/from-meal', async (request, reply) => {
+    const parsed = addItemsFromMealSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
+    }
+    const list = await groceryService.getOrCreateActiveList(request.currentUser.id);
+    const items = await groceryService.addItemsFromMeal(
+      list.id,
+      request.currentUser.id,
+      parsed.data.items,
+      parsed.data.mealId,
+    );
+    return reply.status(201).send(items);
   });
 
   // POST generate from meal plan (no weekStart needed - uses active list)

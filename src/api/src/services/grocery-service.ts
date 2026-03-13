@@ -1,4 +1,4 @@
-import { eq, and, ilike, isNull, asc } from 'drizzle-orm';
+import { eq, and, ilike, isNull, asc, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import {
   groceryLists,
@@ -16,9 +16,17 @@ import type {
   GroceryCategory,
 } from '../db/schema.js';
 
+export type EnrichedGroceryListItem = GroceryListItem & {
+  effectiveCategoryId: string | null;
+  product: (Omit<GroceryProduct, 'category'> & {
+    category: GroceryCategory | null;
+  }) | null;
+  category: GroceryCategory | null;
+};
+
 export async function getOrCreateActiveList(
   userId: string,
-): Promise<GroceryList & { items: GroceryListItem[] }> {
+): Promise<GroceryList & { items: EnrichedGroceryListItem[] }> {
   const existing = await db
     .select()
     .from(groceryLists)
@@ -36,10 +44,32 @@ export async function getOrCreateActiveList(
     list = created!;
   }
 
-  const items = await db
-    .select()
+  const itemRows = await db
+    .select({ item: groceryListItems, product: groceryProducts, category: groceryCategories })
     .from(groceryListItems)
-    .where(eq(groceryListItems.listId, list.id));
+    .where(eq(groceryListItems.listId, list.id))
+    .leftJoin(groceryProducts, eq(groceryListItems.productId, groceryProducts.id))
+    .leftJoin(
+      groceryCategories,
+      sql`COALESCE(${groceryListItems.categoryId}, ${groceryProducts.categoryId}) = ${groceryCategories.id}`,
+    )
+    .orderBy(groceryListItems.createdAt);
+
+  const items: EnrichedGroceryListItem[] = itemRows.map((r) => {
+    const productData = r.product
+      ? (() => {
+          const { category: _oldCategory, ...rest } = r.product;
+          return { ...rest, category: r.category ?? null };
+        })()
+      : null;
+    return {
+      ...r.item,
+      effectiveCategoryId: r.item.categoryId ?? r.product?.categoryId ?? null,
+      product: productData,
+      category: r.category ?? null,
+    };
+  });
+
   return { ...list, items };
 }
 
@@ -97,6 +127,71 @@ export async function addItem(
     })
     .returning();
   return item!;
+}
+
+export async function addItemsFromMeal(
+  listId: string,
+  userId: string,
+  items: Array<{
+    name: string;
+    quantity?: string;
+    unit?: string;
+    productId?: string;
+    categoryId?: string;
+    recipeId?: string;
+  }>,
+  mealId: string,
+): Promise<GroceryListItem[]> {
+  const created: GroceryListItem[] = [];
+
+  for (const item of items) {
+    let resolvedProductId: string | null = item.productId ?? null;
+    let resolvedCategoryId: string | null = item.categoryId ?? null;
+
+    if (!resolvedProductId) {
+      const existing = await db
+        .select()
+        .from(groceryProducts)
+        .where(and(eq(groceryProducts.userId, userId), ilike(groceryProducts.name, item.name)))
+        .limit(1);
+
+      if (existing.length > 0) {
+        resolvedProductId = existing[0]!.id;
+        if (!resolvedCategoryId && existing[0]!.categoryId) {
+          resolvedCategoryId = existing[0]!.categoryId;
+        }
+      } else {
+        const [newProduct] = await db
+          .insert(groceryProducts)
+          .values({ userId, name: item.name })
+          .returning();
+        resolvedProductId = newProduct!.id;
+      }
+    }
+
+    const quantity =
+      item.quantity && item.unit
+        ? `${item.quantity} ${item.unit}`
+        : item.quantity ?? null;
+
+    const [newItem] = await db
+      .insert(groceryListItems)
+      .values({
+        listId,
+        productId: resolvedProductId,
+        name: item.name,
+        quantity,
+        checked: false,
+        buyOnDiscount: false,
+        mealId,
+        recipeId: item.recipeId ?? null,
+        categoryId: resolvedCategoryId,
+      })
+      .returning();
+    created.push(newItem!);
+  }
+
+  return created;
 }
 
 export async function updateItem(
