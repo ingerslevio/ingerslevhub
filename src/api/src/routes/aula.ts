@@ -26,9 +26,11 @@ const aulaRoutes: FastifyPluginAsync = async (fastify) => {
 
     const redirectUri = `${getApiBase(request)}/api/aula/auth/callback`;
 
-    // Store verifier+state+userId in a short-lived signed cookie
+    // Store verifier+state+userId in a short-lived signed cookie.
+    // Cast to any because FastifyJWT types constrain payload to { userId }.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cookiePayload = fastify.jwt.sign(
-      { state, verifier, userId: request.currentUser.id, redirectUri },
+      { state, verifier, userId: request.currentUser.id, redirectUri } as any,
       { expiresIn: '10m' },
     );
     reply.setCookie('aula_oauth', cookiePayload, {
