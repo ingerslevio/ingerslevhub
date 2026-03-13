@@ -26,6 +26,7 @@ export async function listRecipes(familyId: string): Promise<EnrichedRecipe[]> {
       tags: recipes.tags,
       ratingSum: recipes.ratingSum,
       ratingCount: recipes.ratingCount,
+      familyId: recipes.familyId,
       createdAt: recipes.createdAt,
       lastUsedAt: max(meals.createdAt),
       timesUsed: count(meals.id),
@@ -89,7 +90,7 @@ export async function createRecipe(
     .returning();
 
   if (tags.length > 0) {
-    await ensureTags(userId, tags);
+    await ensureTags(familyId, tags);
   }
 
   return recipe!;
@@ -97,7 +98,7 @@ export async function createRecipe(
 
 export async function updateRecipe(
   id: string,
-  userId: string,
+  familyId: string,
   data: Partial<{
     name: string;
     description: string;
@@ -131,13 +132,13 @@ export async function updateRecipe(
   if (!recipe) throw new Error('Recipe not found');
 
   if (data.tags && data.tags.length > 0) {
-    await ensureTags(userId, data.tags);
+    await ensureTags(familyId, data.tags);
   }
 
   return recipe;
 }
 
-export async function deleteRecipe(id: string, userId: string): Promise<void> {
+export async function deleteRecipe(id: string, familyId: string): Promise<void> {
   const result = await db
     .delete(recipes)
     .where(and(eq(recipes.id, id), eq(recipes.familyId, familyId)))
@@ -145,14 +146,14 @@ export async function deleteRecipe(id: string, userId: string): Promise<void> {
   if (result.length === 0) throw new Error('Recipe not found');
 }
 
-export async function listTags(userId: string, q?: string): Promise<RecipeTag[]> {
+export async function listTags(familyId: string, q?: string): Promise<RecipeTag[]> {
   if (q) {
     return db
       .select()
       .from(recipeTags)
       .where(
         and(
-          eq(recipeTags.userId, userId),
+          eq(recipeTags.familyId, familyId),
           sql`${recipeTags.name} ILIKE ${'%' + q + '%'}`,
         ),
       )
@@ -161,15 +162,15 @@ export async function listTags(userId: string, q?: string): Promise<RecipeTag[]>
   return db
     .select()
     .from(recipeTags)
-    .where(eq(recipeTags.userId, userId))
+    .where(eq(recipeTags.familyId, familyId))
     .limit(20);
 }
 
-export async function ensureTags(userId: string, names: string[]): Promise<void> {
+export async function ensureTags(familyId: string, names: string[]): Promise<void> {
   if (names.length === 0) return;
   for (const name of names) {
     await db.execute(
-      sql`INSERT INTO recipe_tags (user_id, name) VALUES (${userId}, ${name}) ON CONFLICT (user_id, name) DO NOTHING`,
+      sql`INSERT INTO recipe_tags (family_id, name) VALUES (${familyId}, ${name}) ON CONFLICT (family_id, name) DO NOTHING`,
     );
   }
 }
