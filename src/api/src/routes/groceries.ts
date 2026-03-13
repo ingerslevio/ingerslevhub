@@ -8,6 +8,7 @@ const addItemSchema = z.object({
   quantity: z.string().max(100).optional(),
   note: z.string().max(500).optional(),
   buyOnDiscount: z.boolean().optional(),
+  categoryId: z.string().uuid().nullable().optional(),
 });
 
 const updateItemSchema = z.object({

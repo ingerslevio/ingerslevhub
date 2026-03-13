@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { format, startOfWeek } from 'date-fns'
-import { Trash2, Plus, ChevronDown, ChevronUp, Settings2, ShoppingCart, Search, X, Pencil } from 'lucide-react'
+import { Trash2, Plus, ChevronDown, ChevronUp, Settings2, Search, X, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -11,15 +10,9 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { api } from '@/lib/api'
-import type { GroceryListItem, GroceryProduct, GroceryCategory, Meal } from '@/types'
+import type { GroceryListItem, GroceryProduct, GroceryCategory } from '@/types'
 import { cn } from '@/lib/utils'
 import { CategoryEditor } from '@/components/groceries/CategoryEditor'
-import { AddFromMealDialog } from '@/components/groceries/AddFromMealDialog'
-
-const DAY_LABELS: Record<string, string> = {
-  monday: 'Mandag', tuesday: 'Tirsdag', wednesday: 'Onsdag', thursday: 'Torsdag',
-  friday: 'Fredag', saturday: 'Lørdag', sunday: 'Søndag',
-}
 
 // ─── Active list item row (dense) ──────────────────────────────────────────
 
@@ -234,12 +227,23 @@ function ProductSearch({ listId, categories, onItemAdded }: ProductSearchProps) 
     setEditCategoryId((product as GroceryProduct & { categoryId?: string | null }).categoryId ?? null)
   }
 
+  const [isExpanded, setIsExpanded] = useState(false)
+
   return (
     <div className="space-y-2">
-      <p className="text-sm font-semibold flex items-center gap-1">
-        <Search className="h-4 w-4" />
-        Tilføj varer
-      </p>
+      <button
+        className="flex items-center justify-between w-full text-left"
+        onClick={() => setIsExpanded(v => !v)}
+      >
+        <p className="text-sm font-semibold flex items-center gap-1">
+          <Search className="h-4 w-4" />
+          Tilføj varer
+        </p>
+        {isExpanded
+          ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          : <ChevronUp className="h-4 w-4 text-muted-foreground" />}
+      </button>
+    {isExpanded && (<>
       <div className="relative">
         <Input
           placeholder="Søg efter vare..."
@@ -421,6 +425,7 @@ function ProductSearch({ listId, categories, onItemAdded }: ProductSearchProps) 
           </DialogContent>
         </Dialog>
       )}
+      </>)}
     </div>
   )
 }
@@ -441,19 +446,7 @@ export default function Groceries() {
     queryFn: () => api.groceries.listCategories(),
   })
 
-  const currentWeekKey = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  const { data: mealPlan } = useQuery({
-    queryKey: ['meals', currentWeekKey],
-    queryFn: () => api.meals.getWeek(currentWeekKey),
-  })
-
-  const mealsWithRecipes = useMemo(() => {
-    if (!mealPlan?.meals) return []
-    return mealPlan.meals.filter(m => m.recipe && m.recipe.ingredients && m.recipe.ingredients !== '[]')
-  }, [mealPlan])
-
   const [categoryEditorOpen, setCategoryEditorOpen] = useState(false)
-  const [addFromMealTarget, setAddFromMealTarget] = useState<Meal | null>(null)
   const [showBoughtSection, setShowBoughtSection] = useState(false)
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
 
@@ -516,27 +509,6 @@ export default function Groceries() {
           </Button>
         </div>
       </div>
-
-      {/* Fra madplan */}
-      {mealsWithRecipes.length > 0 && (
-        <div className="border rounded-lg p-3 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-            <ShoppingCart className="h-3.5 w-3.5" />
-            Fra madplan
-          </p>
-          {mealsWithRecipes.map(meal => (
-            <div key={meal.id} className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <span className="text-xs text-muted-foreground">{DAY_LABELS[meal.dayOfWeek] ?? meal.dayOfWeek}: </span>
-                <span className="text-sm font-medium truncate">{meal.recipe?.name ?? meal.title}</span>
-              </div>
-              <Button size="sm" variant="outline" className="shrink-0 text-xs h-7" onClick={() => setAddFromMealTarget(meal)}>
-                Tilføj
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Active list */}
       {isLoading ? (
@@ -601,10 +573,6 @@ export default function Groceries() {
       </div>
 
       <CategoryEditor open={categoryEditorOpen} onClose={() => setCategoryEditorOpen(false)} />
-
-      {addFromMealTarget && (
-        <AddFromMealDialog open={true} onClose={() => setAddFromMealTarget(null)} meal={addFromMealTarget} />
-      )}
     </div>
   )
 }
