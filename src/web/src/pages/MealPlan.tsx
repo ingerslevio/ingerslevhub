@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns'
+import { useSearchParams } from 'react-router-dom'
+import { format, startOfWeek, addWeeks, subWeeks, getISOWeek, getISOWeekYear, startOfISOWeek } from 'date-fns'
 import { da } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,27 @@ function daysAgo(iso: string): string {
   if (days === 0) return 'i dag'
   if (days === 1) return 'i går'
   return `${days} dage siden`
+}
+
+function formatWeekParam(date: Date): string {
+  const week = getISOWeek(date)
+  const year = getISOWeekYear(date)
+  return `${year}-W${String(week).padStart(2, '0')}`
+}
+
+function parseWeekParam(param: string): Date | null {
+  const match = param.match(/^(\d{4})-W(\d{2})$/)
+  if (!match) return null
+  const year = parseInt(match[1]!)
+  const week = parseInt(match[2]!)
+  // Find the Monday of that ISO week
+  // ISO week 1 of a year is the week containing the first Thursday
+  // Use a simple approach: find Jan 4 of the year (always in week 1), then offset
+  const jan4 = new Date(year, 0, 4)
+  const startOfWeek1 = startOfISOWeek(jan4)
+  const result = new Date(startOfWeek1)
+  result.setDate(result.getDate() + (week - 1) * 7)
+  return result
 }
 
 interface MealRatingProps {
@@ -51,12 +73,18 @@ function MealRating({ meal, onRate }: MealRatingProps) {
 
 export default function MealPlan() {
   const queryClient = useQueryClient()
-  const [currentWeekStart, setCurrentWeekStart] = useState(() =>
-    startOfWeek(new Date(), { weekStartsOn: 1 })
-  )
+  const [searchParams, setSearchParams] = useSearchParams()
   const [recipeBrowserDay, setRecipeBrowserDay] = useState<string | null>(null)
 
+  const weekParam = searchParams.get('uge')
+
+  const currentWeekStart = weekParam
+    ? (parseWeekParam(weekParam) ?? startOfWeek(new Date(), { weekStartsOn: 1 }))
+    : startOfWeek(new Date(), { weekStartsOn: 1 })
+
   const weekKey = format(currentWeekStart, 'yyyy-MM-dd')
+  const weekNumber = getISOWeek(currentWeekStart)
+  const weekYear = getISOWeekYear(currentWeekStart)
 
   const { data: mealPlan, isLoading } = useQuery({
     queryKey: ['meals', weekKey],
@@ -97,26 +125,44 @@ export default function MealPlan() {
     ratingMutation.mutate({ id: mealId, rating })
   }, [ratingMutation])
 
+  const goToPrevWeek = () => {
+    const prev = subWeeks(currentWeekStart, 1)
+    setSearchParams({ uge: formatWeekParam(prev) })
+  }
+
+  const goToNextWeek = () => {
+    const next = addWeeks(currentWeekStart, 1)
+    setSearchParams({ uge: formatWeekParam(next) })
+  }
+
+  const goToToday = () => {
+    setSearchParams({})
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Madplan</h1>
-        <Button variant="outline" size="sm" onClick={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
+        <Button variant="outline" size="sm" onClick={goToToday}>
           I dag
         </Button>
       </div>
 
       <div className="flex items-center justify-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setCurrentWeekStart(d => subWeeks(d, 1))}>
+        <Button variant="ghost" size="icon" onClick={goToPrevWeek}>
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <span className="text-sm font-medium min-w-[200px] text-center">
-          Uge fra {format(currentWeekStart, 'd. MMMM yyyy', { locale: da })}
+          Uge {weekNumber} · {weekYear}
         </span>
-        <Button variant="ghost" size="icon" onClick={() => setCurrentWeekStart(d => addWeeks(d, 1))}>
+        <Button variant="ghost" size="icon" onClick={goToNextWeek}>
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
+
+      <p className="text-xs text-muted-foreground text-center -mt-3">
+        {format(currentWeekStart, 'd. MMMM yyyy', { locale: da })}
+      </p>
 
       {isLoading ? (
         <div className="space-y-3">

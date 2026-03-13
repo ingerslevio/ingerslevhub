@@ -66,14 +66,14 @@ export function AddTaskDrawer({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Tilfoej lektieopgave</DialogTitle>
+          <DialogTitle>Tilføj lektieopgave</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="student">Elev</Label>
             <Select value={studentId} onValueChange={setStudentId}>
               <SelectTrigger id="student">
-                <SelectValue placeholder="Vaelg en elev" />
+                <SelectValue placeholder="Vælg en elev" />
               </SelectTrigger>
               <SelectContent>
                 {students.map((s) => (
@@ -128,7 +128,7 @@ export function AddTaskDrawer({
               disabled={loading || !studentId || !title.trim()}
             >
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Tilfoej opgave
+              Tilføj opgave
             </Button>
           </div>
         </form>

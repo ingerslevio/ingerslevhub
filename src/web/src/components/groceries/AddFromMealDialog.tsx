@@ -85,7 +85,7 @@ export function AddFromMealDialog({ open, onClose, meal }: AddFromMealDialogProp
           <>
             {success && (
               <p className="text-sm text-green-600 text-center font-medium py-2">
-                Ingredienser tilfojet!
+                Ingredienser tilføjet!
               </p>
             )}
             <div className="flex items-center gap-2 mb-3">
@@ -95,7 +95,7 @@ export function AddFromMealDialog({ open, onClose, meal }: AddFromMealDialogProp
                 onCheckedChange={toggleAll}
               />
               <label htmlFor="select-all" className="text-sm text-muted-foreground cursor-pointer">
-                Vaelg alle
+                Vælg alle
               </label>
             </div>
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -123,7 +123,7 @@ export function AddFromMealDialog({ open, onClose, meal }: AddFromMealDialogProp
                 disabled={selected.size === 0 || mutation.isPending || success}
                 className="flex-1"
               >
-                Tilfoej valgte ({selected.size})
+                Tilføj valgte ({selected.size})
               </Button>
               <Button variant="outline" onClick={onClose}>
                 Annuller

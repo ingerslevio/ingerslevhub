@@ -12,6 +12,7 @@ const Calendar = React.lazy(() => import('./pages/Calendar'))
 const Groceries = React.lazy(() => import('./pages/Groceries'))
 const Recipes = React.lazy(() => import('./pages/Recipes'))
 const Login = React.lazy(() => import('./pages/Login'))
+const Admin = React.lazy(() => import('./pages/Admin'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,8 +29,9 @@ const pageTitles: Record<string, string> = {
   '/meals': 'Madplan',
   '/homework': 'Lektier',
   '/calendar': 'Kalender',
-  '/groceries': 'Indkobsliste',
+  '/groceries': 'Indkøbsliste',
   '/recipes': 'Opskrifter',
+  '/admin': 'Admin',
 }
 
 function AuthenticatedRoutes() {
@@ -48,7 +50,7 @@ function AuthenticatedRoutes() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-muted-foreground">Indlaeser...</div>
+        <div className="text-muted-foreground">Indlæser...</div>
       </div>
     )
   }
@@ -61,7 +63,7 @@ function AuthenticatedRoutes() {
 
   return (
     <Shell title={title} user={user}>
-      <Suspense fallback={<div className="text-muted-foreground">Indlaeser...</div>}>
+      <Suspense fallback={<div className="text-muted-foreground">Indlæser...</div>}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/meals" element={<MealPlan />} />
@@ -69,6 +71,7 @@ function AuthenticatedRoutes() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/groceries" element={<Groceries />} />
           <Route path="/recipes" element={<Recipes />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </Suspense>
     </Shell>
@@ -78,7 +81,7 @@ function AuthenticatedRoutes() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="text-muted-foreground">Indlaeser...</div></div>}>
+      <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="text-muted-foreground">Indlæser...</div></div>}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/*" element={<AuthenticatedRoutes />} />

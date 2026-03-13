@@ -19,8 +19,8 @@ const DAY_LABELS: Record<string, string> = {
   wednesday: 'Ons',
   thursday: 'Tor',
   friday: 'Fre',
-  saturday: 'Lor',
-  sunday: 'Son',
+  saturday: 'Lør',
+  sunday: 'Søn',
 }
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'] as const
@@ -95,7 +95,7 @@ export function WeeklyGrid({
                     onClick={() => onAddMeal(day, mealType)}
                   >
                     <Plus className="h-3 w-3 mr-1" />
-                    Tilfoej
+                    Tilføj
                   </Button>
                 </div>
               )

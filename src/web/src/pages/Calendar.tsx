@@ -123,13 +123,13 @@ export default function Calendar() {
       {/* Calendar selector panel */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Vaelg kalendere</CardTitle>
+          <CardTitle className="text-base">Vælg kalendere</CardTitle>
         </CardHeader>
         <CardContent>
           {calAuthError ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Din Google Kalender-forbindelse er udloebet.
+                Din Google Kalender-forbindelse er udløbet.
               </p>
               <Button
                 variant="outline"
@@ -143,12 +143,12 @@ export default function Calendar() {
           ) : calendarsLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Indlaeser kalendere...
+              Indlæser kalendere...
             </div>
           ) : calendarsError && !calAuthError ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Kunne ikke indlaeser dine Google Kalendere.
+                Kunne ikke indlæse dine Google Kalendere.
               </p>
               <Button
                 variant="outline"
@@ -172,7 +172,7 @@ export default function Calendar() {
                     <Label htmlFor={`cal-${cal.id}`} className="text-sm cursor-pointer">
                       {cal.summary}
                       {cal.primary && (
-                        <span className="ml-1 text-xs text-muted-foreground">(Primaer)</span>
+                        <span className="ml-1 text-xs text-muted-foreground">(Primær)</span>
                       )}
                     </Label>
                   </div>
@@ -221,7 +221,7 @@ export default function Calendar() {
 
       {!hasCalendars && !eventsLoading && (
         <p className="text-sm text-muted-foreground text-center py-8">
-          Vaelg en eller flere kalendere ovenfor for at vise begivenheder.
+          Vælg en eller flere kalendere ovenfor for at vise begivenheder.
         </p>
       )}
 

@@ -61,7 +61,7 @@ export default function Homework() {
         <h1 className="text-2xl font-bold">Lektier</h1>
         <Button onClick={() => setDrawerOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Tilfoej opgave
+          Tilføj opgave
         </Button>
       </div>
 

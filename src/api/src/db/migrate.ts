@@ -172,6 +172,14 @@ export async function runMigrations() {
     )
   `;
 
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user'`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS approved BOOLEAN NOT NULL DEFAULT FALSE`;
+  // Approve existing users (they were created before this feature)
+  await sql`UPDATE users SET approved = TRUE WHERE approved = FALSE`;
+  // Make admin
+  await sql`UPDATE users SET role = 'admin' WHERE email = 'emil@ingerslev.io'`;
+
   console.log('Migrations complete.');
   await sql.end();
 }

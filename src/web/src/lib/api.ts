@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag } from '@/types'
 
+
 const client = axios.create({
   baseURL: '',
   withCredentials: true,
@@ -54,6 +55,27 @@ export const api = {
     },
     async logout(): Promise<void> {
       await client.post('/api/auth/logout')
+    },
+    async loginWithPassword(email: string, password: string): Promise<User> {
+      const { data } = await client.post('/api/auth/password', { email, password })
+      return data
+    },
+  },
+  admin: {
+    async listUsers(): Promise<User[]> {
+      const { data } = await client.get('/api/admin/users')
+      return data
+    },
+    async createUser(input: { email: string; name: string; password?: string; role?: string }): Promise<User> {
+      const { data } = await client.post('/api/admin/users', input)
+      return data
+    },
+    async updateUser(id: string, input: { approved?: boolean; role?: string; name?: string }): Promise<User> {
+      const { data } = await client.patch(`/api/admin/users/${id}`, input)
+      return data
+    },
+    async deleteUser(id: string): Promise<void> {
+      await client.delete(`/api/admin/users/${id}`)
     },
   },
   meals: {
@@ -159,7 +181,7 @@ export const api = {
       const { data } = await client.post('/api/groceries/list/items', input)
       return data
     },
-    async updateItem(id: string, input: Partial<{ quantity: string; note: string; buyOnDiscount: boolean; checked: boolean }>): Promise<GroceryListItem> {
+    async updateItem(id: string, input: Partial<{ quantity: string; note: string; buyOnDiscount: boolean; checked: boolean; categoryId: string | null }>): Promise<GroceryListItem> {
       const { data } = await client.put(`/api/groceries/items/${id}`, input)
       return data
     },
@@ -197,6 +219,10 @@ export const api = {
     }): Promise<GroceryListItem[]> {
       const { data: result } = await client.post('/api/groceries/list/items/from-meal', data)
       return result
+    },
+    async updateProduct(id: string, input: { name?: string; categoryId?: string | null }): Promise<GroceryProduct> {
+      const { data } = await client.patch(`/api/groceries/products/${id}`, input)
+      return data
     },
   },
 }

@@ -212,7 +212,7 @@ export function RecipeDialog({ open, onClose, recipe }: RecipeDialogProps) {
             </div>
             <div className="relative">
               <Input
-                placeholder="Tilfoej tag..."
+                placeholder="Tilføj tag..."
                 value={tagInput}
                 onChange={e => setTagInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && tagInput.trim()) { e.preventDefault(); addTag(tagInput) } }}
@@ -258,7 +258,7 @@ export function RecipeDialog({ open, onClose, recipe }: RecipeDialogProps) {
                     )}
                   </div>
                   <Input
-                    placeholder="Maengde"
+                    placeholder="Mængde"
                     value={ing.quantity ?? ''}
                     onChange={e => updateIngredient(i, 'quantity', e.target.value)}
                     className="w-24 h-8 text-sm"
@@ -277,13 +277,13 @@ export function RecipeDialog({ open, onClose, recipe }: RecipeDialogProps) {
             </div>
             <Button variant="outline" size="sm" onClick={addIngredient} className="mt-2">
               <Plus className="h-3.5 w-3.5 mr-1" />
-              Tilfoej ingrediens
+              Tilføj ingrediens
             </Button>
           </div>
 
           {/* Instructions */}
           <div>
-            <Label htmlFor="recipe-instructions">Fremgangsmaade</Label>
+            <Label htmlFor="recipe-instructions">Fremgangsmåde</Label>
             <Textarea id="recipe-instructions" value={instructions} onChange={e => setInstructions(e.target.value)} rows={4} placeholder="Trin for trin..." />
           </div>
         </div>

@@ -5,6 +5,9 @@ export interface User {
   avatarUrl?: string
   selectedCalendarId?: string
   selectedCalendarIds?: string
+  role: string
+  approved: boolean
+  createdAt?: string
 }
 
 export interface Student {

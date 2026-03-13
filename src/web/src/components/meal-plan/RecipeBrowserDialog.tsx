@@ -27,10 +27,10 @@ export function RecipeBrowserDialog({ open, onClose, onSelect }: RecipeBrowserDi
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Vaelg opskrift</DialogTitle>
+          <DialogTitle>Vælg opskrift</DialogTitle>
         </DialogHeader>
         <Input
-          placeholder="Soeg opskrifter..."
+          placeholder="Søg opskrifter..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="mb-3"
@@ -50,7 +50,7 @@ export function RecipeBrowserDialog({ open, onClose, onSelect }: RecipeBrowserDi
                   )}
                 </div>
                 <Button size="sm" onClick={() => { onSelect(recipe); onClose(); }}>
-                  Vaelg
+                  Vælg
                 </Button>
               </div>
             ))}

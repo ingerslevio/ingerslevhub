@@ -33,7 +33,7 @@ function Stars({ rating, max = 5 }: { rating: number | null | undefined; max?: n
 function daysAgo(iso: string): string {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
   if (days === 0) return 'i dag'
-  if (days === 1) return 'i gar'
+  if (days === 1) return 'i går'
   return `${days} dage siden`
 }
 
@@ -138,7 +138,7 @@ export default function Recipes() {
         <h1 className="text-2xl font-bold">Opskrifter</h1>
         <Button size="sm" onClick={openAdd}>
           <Plus className="h-4 w-4 mr-1" />
-          Tilfoej opskrift
+          Tilføj opskrift
         </Button>
       </div>
 
@@ -154,7 +154,7 @@ export default function Recipes() {
           <p className="text-muted-foreground">Ingen opskrifter endnu</p>
           <Button size="sm" onClick={openAdd} className="mt-4">
             <Plus className="h-4 w-4 mr-1" />
-            Tilfoej din forste opskrift
+            Tilføj din første opskrift
           </Button>
         </div>
       ) : (

@@ -13,6 +13,7 @@ import homeworkRoutes from './routes/homework.js';
 import calendarRoutes from './routes/calendar.js';
 import recipesRoutes from './routes/recipes.js';
 import groceriesRoutes from './routes/groceries.js';
+import adminRoutes from './routes/admin.js';
 import { runMigrations } from './db/migrate.js';
 
 const app = Fastify({ logger: true });
@@ -32,6 +33,7 @@ async function start() {
   await app.register(calendarRoutes, { prefix: '/api/calendar' });
   await app.register(recipesRoutes, { prefix: '/api/recipes' });
   await app.register(groceriesRoutes, { prefix: '/api/groceries' });
+  await app.register(adminRoutes, { prefix: '/api/admin' });
 
   app.get('/api/health', { logLevel: 'silent' }, async () => ({ status: 'ok' }));
 

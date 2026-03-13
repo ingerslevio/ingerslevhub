@@ -98,14 +98,14 @@ export function CategoryEditor({ open, onClose }: CategoryEditorProps) {
         </div>
 
         <div className="border-t pt-4 mt-2 space-y-2">
-          <p className="text-sm font-medium">Tilfoej kategori</p>
+          <p className="text-sm font-medium">Tilføj kategori</p>
           <div className="flex items-center gap-2">
             <input
               type="color"
               value={newColor}
               onChange={e => setNewColor(e.target.value)}
               className="h-8 w-10 rounded border cursor-pointer shrink-0"
-              title="Vaelg farve"
+              title="Vælg farve"
             />
             <Input
               className="h-8 text-sm flex-1"

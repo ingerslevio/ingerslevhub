@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, UtensilsCrossed, BookOpen, CalendarDays, ShoppingCart, X, GraduationCap } from 'lucide-react'
+import { Home, UtensilsCrossed, BookOpen, CalendarDays, ShoppingCart, X, GraduationCap, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { User } from '@/types'
@@ -10,7 +10,7 @@ const navItems = [
   { to: '/recipes', label: 'Opskrifter', icon: BookOpen },
   { to: '/homework', label: 'Lektier', icon: GraduationCap },
   { to: '/calendar', label: 'Kalender', icon: CalendarDays },
-  { to: '/groceries', label: 'Indkobsliste', icon: ShoppingCart },
+  { to: '/groceries', label: 'Indkøbsliste', icon: ShoppingCart },
 ]
 
 interface SidebarProps {
@@ -19,6 +19,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ user, onClose }: SidebarProps) {
+  const isAdmin = user?.role === 'admin'
+
   return (
     <aside className="flex h-full w-64 flex-col border-r bg-card">
       <div className="flex h-14 items-center justify-between border-b px-6">
@@ -52,6 +54,23 @@ export default function Sidebar({ user, onClose }: SidebarProps) {
             {label}
           </NavLink>
         ))}
+
+        {isAdmin && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )
+            }
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Admin
+          </NavLink>
+        )}
       </nav>
       {user && (
         <div className="border-t p-4">

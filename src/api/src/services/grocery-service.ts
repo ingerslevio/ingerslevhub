@@ -201,6 +201,7 @@ export async function updateItem(
     note: string;
     buyOnDiscount: boolean;
     checked: boolean;
+    categoryId: string | null;
   }>,
 ): Promise<GroceryListItem> {
   const updateData: Record<string, unknown> = { ...data };
@@ -314,6 +315,36 @@ export async function updateProductCategory(
     .returning();
   if (!product) throw new Error('Product not found');
   return product;
+}
+
+export async function updateProduct(
+  productId: string,
+  userId: string,
+  data: Partial<{ name: string; categoryId: string | null }>,
+): Promise<GroceryProductWithCategory> {
+  const updateData: Record<string, unknown> = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+
+  const rows = await db
+    .update(groceryProducts)
+    .set(updateData)
+    .where(and(eq(groceryProducts.id, productId), eq(groceryProducts.userId, userId)))
+    .returning();
+
+  if (rows.length === 0) throw new Error('Product not found');
+
+  // Return with category enriched
+  const enriched = await db
+    .select({ product: groceryProducts, category: groceryCategories })
+    .from(groceryProducts)
+    .leftJoin(groceryCategories, eq(groceryProducts.categoryId, groceryCategories.id))
+    .where(eq(groceryProducts.id, productId))
+    .limit(1);
+
+  if (enriched.length === 0) throw new Error('Product not found');
+  const { category: _oldCategory, ...rest } = enriched[0]!.product;
+  return { ...rest, category: enriched[0]!.category ?? null };
 }
 
 export async function generateFromMealPlan(

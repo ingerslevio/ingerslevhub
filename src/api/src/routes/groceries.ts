@@ -15,6 +15,12 @@ const updateItemSchema = z.object({
   note: z.string().max(500).optional(),
   buyOnDiscount: z.boolean().optional(),
   checked: z.boolean().optional(),
+  categoryId: z.string().uuid().nullable().optional(),
+});
+
+const updateProductSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  categoryId: z.string().uuid().nullable().optional(),
 });
 
 const createCategorySchema = z.object({
@@ -129,7 +135,7 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
     return groceryService.searchProducts(request.currentUser.id, q);
   });
 
-  // PATCH update product category
+  // PATCH update product category (legacy)
   fastify.patch<{ Params: { id: string } }>('/products/:id/category', async (request, reply) => {
     const parsed = updateProductCategorySchema.safeParse(request.body);
     if (!parsed.success) {
@@ -139,6 +145,23 @@ const groceriesRoutes: FastifyPluginAsync = async (fastify) => {
       return await groceryService.updateProductCategory(
         request.params.id,
         parsed.data.categoryId,
+      );
+    } catch {
+      return reply.status(404).send({ error: 'Product not found' });
+    }
+  });
+
+  // PATCH update product (name and/or category)
+  fastify.patch<{ Params: { id: string } }>('/products/:id', async (request, reply) => {
+    const parsed = updateProductSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Validation failed', details: parsed.error.issues });
+    }
+    try {
+      return await groceryService.updateProduct(
+        request.params.id,
+        request.currentUser.id,
+        parsed.data,
       );
     } catch {
       return reply.status(404).send({ error: 'Product not found' });

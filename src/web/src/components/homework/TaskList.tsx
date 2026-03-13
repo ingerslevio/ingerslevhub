@@ -20,7 +20,7 @@ export function TaskList({
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
         <ClipboardList className="h-12 w-12 mb-3" />
         <p className="text-lg font-medium">Ingen opgaver</p>
-        <p className="text-sm">Tilfoej en opgave for at komme i gang</p>
+        <p className="text-sm">Tilføj en opgave for at komme i gang</p>
       </div>
     )
   }

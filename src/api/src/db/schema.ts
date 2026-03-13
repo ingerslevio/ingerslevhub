@@ -13,6 +13,9 @@ export const users = pgTable('users', {
   accessToken: text('access_token'),
   refreshToken: text('refresh_token'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  role: text('role').default('user').notNull(),
+  passwordHash: text('password_hash'),
+  approved: boolean('approved').default(false).notNull(),
 });
 
 export const students = pgTable('students', {

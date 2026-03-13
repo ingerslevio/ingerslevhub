@@ -8,7 +8,7 @@ const tabs = [
   { to: '/recipes', label: 'Opskrifter', icon: BookOpen },
   { to: '/homework', label: 'Lektier', icon: GraduationCap },
   { to: '/calendar', label: 'Kalender', icon: CalendarDays },
-  { to: '/groceries', label: 'Indkob', icon: ShoppingCart },
+  { to: '/groceries', label: 'Indkøb', icon: ShoppingCart },
 ]
 
 export default function BottomNav() {

@@ -25,8 +25,8 @@ const DAYS = [
   { value: 'wednesday', label: 'Onsdag' },
   { value: 'thursday', label: 'Torsdag' },
   { value: 'friday', label: 'Fredag' },
-  { value: 'saturday', label: 'Lordag' },
-  { value: 'sunday', label: 'Sondag' },
+  { value: 'saturday', label: 'Lørdag' },
+  { value: 'sunday', label: 'Søndag' },
 ]
 
 const MEAL_TYPES = [
@@ -83,7 +83,7 @@ export function AddMealDialog({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Tilfoej maltid</DialogTitle>
+          <DialogTitle>Tilføj måltid</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -103,7 +103,7 @@ export function AddMealDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="mealType">Maltidstype</Label>
+              <Label htmlFor="mealType">Måltidstype</Label>
               <Select value={mealType} onValueChange={setMealType}>
                 <SelectTrigger id="mealType">
                   <SelectValue />
@@ -144,7 +144,7 @@ export function AddMealDialog({
             </Button>
             <Button type="submit" disabled={loading || !title.trim()}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Tilfoej maltid
+              Tilføj måltid
             </Button>
           </div>
         </form>
