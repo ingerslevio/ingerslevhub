@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db/client.js';
-import { users, apiKeys } from '../db/schema.js';
+import { users, apiKeys, families, familyMembers } from '../db/schema.js';
 import { hashPassword } from './auth.js';
 
 const createUserSchema = z.object({
@@ -124,6 +124,48 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ error: 'User not found' });
     }
 
+    return reply.status(204).send();
+  });
+
+  // GET all families with members
+  fastify.get('/families', async () => {
+    const allFamilies = await db.select().from(families).orderBy(families.createdAt);
+    const allMembers = await db
+      .select({ familyId: familyMembers.familyId, userId: familyMembers.userId, role: familyMembers.role })
+      .from(familyMembers);
+    return allFamilies.map(f => ({
+      ...f,
+      members: allMembers.filter(m => m.familyId === f.id),
+    }));
+  });
+
+  // POST move user to a family (removes from current family first)
+  fastify.post<{ Params: { familyId: string } }>('/families/:familyId/members', async (request, reply) => {
+    const body = z.object({ userId: z.string().uuid(), role: z.enum(['owner', 'member']).optional().default('member') }).safeParse(request.body);
+    if (!body.success) return reply.status(400).send({ error: 'Validation failed' });
+
+    const { userId, role } = body.data;
+    const { familyId } = request.params;
+
+    // Verify family exists
+    const [family] = await db.select().from(families).where(eq(families.id, familyId)).limit(1);
+    if (!family) return reply.status(404).send({ error: 'Family not found' });
+
+    // Verify user exists
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) return reply.status(404).send({ error: 'User not found' });
+
+    // Remove from any existing family
+    await db.delete(familyMembers).where(eq(familyMembers.userId, userId));
+
+    // Add to new family
+    const [member] = await db.insert(familyMembers).values({ familyId, userId, role }).returning();
+    return reply.status(201).send(member);
+  });
+
+  // DELETE remove user from their family
+  fastify.delete<{ Params: { userId: string } }>('/families/members/:userId', async (request, reply) => {
+    await db.delete(familyMembers).where(eq(familyMembers.userId, request.params.userId));
     return reply.status(204).send();
   });
 
