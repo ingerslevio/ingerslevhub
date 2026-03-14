@@ -16,6 +16,7 @@ const updateUserSchema = z.object({
   approved: z.boolean().optional(),
   role: z.enum(['user', 'admin']).optional(),
   name: z.string().min(1).max(200).optional(),
+  password: z.string().min(1).optional(),
 });
 
 const adminRoutes: FastifyPluginAsync = async (fastify) => {
@@ -89,6 +90,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     if (parsed.data.approved !== undefined) updateData.approved = parsed.data.approved;
     if (parsed.data.role !== undefined) updateData.role = parsed.data.role;
     if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
+    if (parsed.data.password !== undefined) updateData.passwordHash = hashPassword(parsed.data.password);
 
     const [updated] = await db
       .update(users)

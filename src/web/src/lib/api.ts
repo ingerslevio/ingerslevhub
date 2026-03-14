@@ -70,7 +70,7 @@ export const api = {
       const { data } = await client.post('/api/admin/users', input)
       return data
     },
-    async updateUser(id: string, input: { approved?: boolean; role?: string; name?: string }): Promise<User> {
+    async updateUser(id: string, input: { approved?: boolean; role?: string; name?: string; password?: string }): Promise<User> {
       const { data } = await client.patch(`/api/admin/users/${id}`, input)
       return data
     },
