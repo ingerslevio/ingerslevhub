@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db/client.js';
-import { users, apiKeys, families, familyMembers } from '../db/schema.js';
+import { users, apiKeys, families, familyMembers, students } from '../db/schema.js';
 import { hashPassword } from './auth.js';
 
 const createUserSchema = z.object({
@@ -167,6 +167,23 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete<{ Params: { userId: string } }>('/families/members/:userId', async (request, reply) => {
     await db.delete(familyMembers).where(eq(familyMembers.userId, request.params.userId));
     return reply.status(204).send();
+  });
+
+  // POST migrate all data from one family to another
+  fastify.post('/families/migrate', async (request, reply) => {
+    const body = z.object({ fromFamilyId: z.string().uuid(), toFamilyId: z.string().uuid() }).safeParse(request.body);
+    if (!body.success) return reply.status(400).send({ error: 'Validation failed' });
+
+    const { fromFamilyId, toFamilyId } = body.data;
+
+    // Move students
+    const movedStudents = await db
+      .update(students)
+      .set({ familyId: toFamilyId })
+      .where(eq(students.familyId, fromFamilyId))
+      .returning({ id: students.id, name: students.name });
+
+    return { movedStudents };
   });
 
   // GET all API keys
