@@ -290,6 +290,9 @@ export async function runMigrations() {
     END $$
   `;
 
+  // ING-X: Add familyRole to family_members (adult/child)
+  await sql`ALTER TABLE family_members ADD COLUMN IF NOT EXISTS family_role TEXT NOT NULL DEFAULT 'adult'`;
+
   console.log('Migrations complete.');
   await sql.end();
 }

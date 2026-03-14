@@ -29,6 +29,7 @@ export const familyMembers = pgTable('family_members', {
   familyId: uuid('family_id').references(() => families.id, { onDelete: 'cascade' }).notNull(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   role: text('role').default('member').notNull(),
+  familyRole: text('family_role', { enum: ['adult', 'child'] }).default('adult').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

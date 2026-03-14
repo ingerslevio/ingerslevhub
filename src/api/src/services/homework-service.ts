@@ -1,14 +1,19 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { students, homeworkTasks } from '../db/schema.js';
+import { students, homeworkTasks, subjects } from '../db/schema.js';
 import type { Student, HomeworkTask } from '../db/schema.js';
+
+interface TaskWithRelations extends HomeworkTask {
+  student?: { id: string; name: string; color: string; grade: string | null } | null;
+  subject?: { id: string; name: string; color: string } | null;
+}
 
 export async function listTasks(
   familyId: string,
   filters: { studentId?: string; completed?: boolean },
-): Promise<HomeworkTask[]> {
+): Promise<TaskWithRelations[]> {
   const familyStudents = await db
-    .select({ id: students.id })
+    .select()
     .from(students)
     .where(eq(students.familyId, familyId));
 
@@ -18,20 +23,39 @@ export async function listTasks(
     ? [filters.studentId]
     : familyStudents.map((s) => s.id);
 
-  const allTasks: HomeworkTask[] = [];
-  for (const studentId of studentIds) {
-    const conditions = [eq(homeworkTasks.studentId, studentId)];
-    if (filters.completed !== undefined) {
-      conditions.push(eq(homeworkTasks.completed, filters.completed));
-    }
-    const tasks = await db
-      .select()
-      .from(homeworkTasks)
-      .where(and(...conditions));
-    allTasks.push(...tasks);
+  const conditions = [inArray(homeworkTasks.studentId, studentIds)];
+  if (filters.completed !== undefined) {
+    conditions.push(eq(homeworkTasks.completed, filters.completed));
   }
 
-  return allTasks;
+  const tasks = await db
+    .select()
+    .from(homeworkTasks)
+    .where(and(...conditions));
+
+  if (tasks.length === 0) return [];
+
+  // Build lookup maps
+  const studentMap = new Map(familyStudents.map(s => [s.id, s]));
+
+  const subjectIds = tasks.map(t => t.subjectId).filter((id): id is string => !!id);
+  const subjectMap = new Map<string, { id: string; name: string; color: string }>();
+  if (subjectIds.length > 0) {
+    const subjectRows = await db.select().from(subjects).where(inArray(subjects.id, subjectIds));
+    for (const s of subjectRows) {
+      subjectMap.set(s.id, { id: s.id, name: s.name, color: s.color });
+    }
+  }
+
+  return tasks.map(task => {
+    const student = studentMap.get(task.studentId);
+    const subject = task.subjectId ? subjectMap.get(task.subjectId) ?? null : null;
+    return {
+      ...task,
+      student: student ? { id: student.id, name: student.name, color: student.color, grade: student.grade } : null,
+      subject,
+    };
+  });
 }
 
 export async function createTask(data: {

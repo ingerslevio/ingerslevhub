@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, UtensilsCrossed, BookOpen, CalendarDays, ShoppingCart, X, GraduationCap, ShieldCheck, School, CheckSquare } from 'lucide-react'
+import { Home, UtensilsCrossed, BookOpen, CalendarDays, ShoppingCart, X, GraduationCap, ShieldCheck, School, CheckSquare, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { User } from '@/types'
@@ -13,6 +13,7 @@ const navItems = [
   { to: '/groceries', label: 'Indkøbsliste', icon: ShoppingCart },
   { to: '/todos', label: 'Opgaver', icon: CheckSquare },
   { to: '/aula', label: 'Aula', icon: School },
+  { to: '/family', label: 'Familie', icon: Users },
 ]
 
 interface SidebarProps {

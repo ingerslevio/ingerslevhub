@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag, AulaToken, ApiKey, Todo, RecurringTodo } from '@/types'
+import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag, AulaToken, ApiKey, Todo, RecurringTodo, Family, FamilyDetail } from '@/types'
 
 
 const client = axios.create({
@@ -90,6 +90,25 @@ export const api = {
     },
     async deleteApiKey(id: string): Promise<void> {
       await client.delete(`/api/admin/api-keys/${id}`)
+    },
+    async listFamilies(): Promise<Family[]> {
+      const { data } = await client.get('/api/admin/families')
+      return data
+    },
+    async addFamilyMember(familyId: string, userId: string, role?: string): Promise<unknown> {
+      const { data } = await client.post(`/api/admin/families/${familyId}/members`, { userId, role: role ?? 'member' })
+      return data
+    },
+    async removeFamilyMember(userId: string): Promise<void> {
+      await client.delete(`/api/admin/families/members/${userId}`)
+    },
+    async listStudents(): Promise<Student[]> {
+      const { data } = await client.get('/api/admin/students')
+      return data
+    },
+    async linkStudentToUser(studentId: string, userId: string): Promise<unknown> {
+      const { data } = await client.patch(`/api/admin/students/${studentId}`, { userId })
+      return data
     },
   },
   meals: {
@@ -265,6 +284,28 @@ export const api = {
     },
     async deleteRecurring(id: string): Promise<void> {
       await client.delete(`/api/todos/recurring/${id}`)
+    },
+  },
+  family: {
+    async get(): Promise<FamilyDetail> {
+      const { data } = await client.get('/api/family')
+      return data
+    },
+    async updateName(name: string): Promise<unknown> {
+      const { data } = await client.patch('/api/family', { name })
+      return data
+    },
+    async updateMemberRole(memberId: string, familyRole: 'adult' | 'child'): Promise<unknown> {
+      const { data } = await client.patch(`/api/family/members/${memberId}/role`, { familyRole })
+      return data
+    },
+    async setMemberPassword(userId: string, password: string): Promise<unknown> {
+      const { data } = await client.post(`/api/family/members/${userId}/password`, { password })
+      return data
+    },
+    async invite(input: { email: string; name: string; password: string; familyRole?: 'adult' | 'child' }): Promise<unknown> {
+      const { data } = await client.post('/api/family/invite', input)
+      return data
     },
   },
   aula: {

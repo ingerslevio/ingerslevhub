@@ -131,7 +131,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/families', async () => {
     const allFamilies = await db.select().from(families).orderBy(families.createdAt);
     const allMembers = await db
-      .select({ familyId: familyMembers.familyId, userId: familyMembers.userId, role: familyMembers.role })
+      .select({ familyId: familyMembers.familyId, userId: familyMembers.userId, role: familyMembers.role, familyRole: familyMembers.familyRole })
       .from(familyMembers);
     return allFamilies.map(f => ({
       ...f,
@@ -141,10 +141,14 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST move user to a family (removes from current family first)
   fastify.post<{ Params: { familyId: string } }>('/families/:familyId/members', async (request, reply) => {
-    const body = z.object({ userId: z.string().uuid(), role: z.enum(['owner', 'member']).optional().default('member') }).safeParse(request.body);
+    const body = z.object({
+      userId: z.string().uuid(),
+      role: z.enum(['owner', 'member']).optional().default('member'),
+      familyRole: z.enum(['adult', 'child']).optional().default('adult'),
+    }).safeParse(request.body);
     if (!body.success) return reply.status(400).send({ error: 'Validation failed' });
 
-    const { userId, role } = body.data;
+    const { userId, role, familyRole } = body.data;
     const { familyId } = request.params;
 
     // Verify family exists
@@ -159,7 +163,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     await db.delete(familyMembers).where(eq(familyMembers.userId, userId));
 
     // Add to new family
-    const [member] = await db.insert(familyMembers).values({ familyId, userId, role }).returning();
+    const [member] = await db.insert(familyMembers).values({ familyId, userId, role, familyRole }).returning();
     return reply.status(201).send(member);
   });
 
@@ -184,6 +188,25 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       .returning({ id: students.id, name: students.name });
 
     return { movedStudents };
+  });
+
+  // GET all students
+  fastify.get('/students', async () => {
+    return db.select().from(students).orderBy(students.name);
+  });
+
+  // PATCH update student (link to user)
+  fastify.patch<{ Params: { id: string } }>('/students/:id', async (request, reply) => {
+    const body = z.object({ userId: z.string().uuid().optional(), name: z.string().min(1).optional() }).safeParse(request.body);
+    if (!body.success) return reply.status(400).send({ error: 'Validation failed' });
+
+    const updateData: Record<string, unknown> = {};
+    if (body.data.userId !== undefined) updateData.userId = body.data.userId;
+    if (body.data.name !== undefined) updateData.name = body.data.name;
+
+    const [updated] = await db.update(students).set(updateData).where(eq(students.id, request.params.id)).returning();
+    if (!updated) return reply.status(404).send({ error: 'Student not found' });
+    return updated;
   });
 
   // GET all API keys
