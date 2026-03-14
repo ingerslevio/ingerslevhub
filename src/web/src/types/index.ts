@@ -181,6 +181,22 @@ export interface Family {
   members: FamilyMember[]
 }
 
+export interface FamilyDetailMember {
+  id: string
+  userId: string
+  role: string
+  familyRole: string
+  userName: string
+  userEmail: string
+}
+
+export interface FamilyDetail {
+  id: string
+  name: string
+  createdAt: string
+  members: FamilyDetailMember[]
+}
+
 export interface Todo {
   id: string
   userId: string

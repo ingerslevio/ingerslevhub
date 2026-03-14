@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag, AulaToken, ApiKey, Todo, RecurringTodo, Family } from '@/types'
+import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag, AulaToken, ApiKey, Todo, RecurringTodo, Family, FamilyDetail } from '@/types'
 
 
 const client = axios.create({
@@ -284,6 +284,28 @@ export const api = {
     },
     async deleteRecurring(id: string): Promise<void> {
       await client.delete(`/api/todos/recurring/${id}`)
+    },
+  },
+  family: {
+    async get(): Promise<FamilyDetail> {
+      const { data } = await client.get('/api/family')
+      return data
+    },
+    async updateName(name: string): Promise<unknown> {
+      const { data } = await client.patch('/api/family', { name })
+      return data
+    },
+    async updateMemberRole(memberId: string, familyRole: 'adult' | 'child'): Promise<unknown> {
+      const { data } = await client.patch(`/api/family/members/${memberId}/role`, { familyRole })
+      return data
+    },
+    async setMemberPassword(userId: string, password: string): Promise<unknown> {
+      const { data } = await client.post(`/api/family/members/${userId}/password`, { password })
+      return data
+    },
+    async invite(input: { email: string; name: string; password: string; familyRole?: 'adult' | 'child' }): Promise<unknown> {
+      const { data } = await client.post('/api/family/invite', input)
+      return data
     },
   },
   aula: {
