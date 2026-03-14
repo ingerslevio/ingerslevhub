@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Trash2, Plus, ShieldCheck, Key, Copy, Check } from 'lucide-react'
+import { Trash2, Plus, ShieldCheck, Key, Copy, Check, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { api } from '@/lib/api'
-import type { User, ApiKey } from '@/types'
+import type { User, ApiKey, Family, Student } from '@/types'
 
 export default function Admin() {
   const queryClient = useQueryClient()
@@ -24,6 +24,18 @@ export default function Admin() {
     enabled: currentUser?.role === 'admin',
   })
 
+  const { data: families = [] } = useQuery<Family[]>({
+    queryKey: ['admin', 'families'],
+    queryFn: () => api.admin.listFamilies(),
+    enabled: currentUser?.role === 'admin',
+  })
+
+  const { data: allStudents = [] } = useQuery<Student[]>({
+    queryKey: ['admin', 'students'],
+    queryFn: () => api.admin.listStudents(),
+    enabled: currentUser?.role === 'admin',
+  })
+
   const updateUserMutation = useMutation({
     mutationFn: ({ id, input }: { id: string; input: { approved?: boolean; role?: string; name?: string; password?: string } }) =>
       api.admin.updateUser(id, input),
@@ -32,19 +44,31 @@ export default function Admin() {
 
   const deleteUserMutation = useMutation({
     mutationFn: (id: string) => api.admin.deleteUser(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin'] }),
   })
 
   const createUserMutation = useMutation({
     mutationFn: (input: { email: string; name: string; password?: string; role?: string }) =>
       api.admin.createUser(input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      queryClient.invalidateQueries({ queryKey: ['admin'] })
       setNewEmail('')
       setNewName('')
       setNewPassword('')
       setNewRole('user')
     },
+  })
+
+  const changeFamilyMutation = useMutation({
+    mutationFn: ({ familyId, userId }: { familyId: string; userId: string }) =>
+      api.admin.addFamilyMember(familyId, userId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'families'] }),
+  })
+
+  const linkStudentMutation = useMutation({
+    mutationFn: ({ studentId, userId }: { studentId: string; userId: string }) =>
+      api.admin.linkStudentToUser(studentId, userId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'students'] }),
   })
 
   const [newEmail, setNewEmail] = useState('')
@@ -80,6 +104,20 @@ export default function Admin() {
     void navigator.clipboard.writeText(key)
     setCopiedKeyId(id)
     setTimeout(() => setCopiedKeyId(null), 2000)
+  }
+
+  // Build a userId -> familyName lookup
+  const userFamilyMap = new Map<string, { familyId: string; familyName: string }>()
+  for (const f of families) {
+    for (const m of f.members) {
+      userFamilyMap.set(m.userId, { familyId: f.id, familyName: f.name })
+    }
+  }
+
+  // Build userId -> student lookup
+  const userStudentMap = new Map<string, Student>()
+  for (const s of allStudents) {
+    if (s.userId) userStudentMap.set(s.userId, s)
   }
 
   if (!currentUser) {
@@ -194,8 +232,14 @@ export default function Admin() {
               <UserRow
                 key={user.id}
                 user={user}
+                families={families}
+                allStudents={allStudents}
+                currentFamily={userFamilyMap.get(user.id)}
+                linkedStudent={userStudentMap.get(user.id)}
                 onUpdate={(input) => updateUserMutation.mutate({ id: user.id, input })}
                 onDelete={() => deleteUserMutation.mutate(user.id)}
+                onChangeFamily={(familyId) => changeFamilyMutation.mutate({ familyId, userId: user.id })}
+                onLinkStudent={(studentId) => linkStudentMutation.mutate({ studentId, userId: user.id })}
                 isSelf={user.id === currentUser.id}
               />
             ))}
@@ -207,12 +251,12 @@ export default function Admin() {
       <div className="border rounded-lg overflow-hidden">
         <div className="p-4 border-b bg-muted/30 flex items-center gap-2">
           <Key className="h-4 w-4" />
-          <h2 className="text-base font-semibold">API Nøgler til bots ({apiKeys.length})</h2>
+          <h2 className="text-base font-semibold">API Nogler til bots ({apiKeys.length})</h2>
         </div>
 
         {/* Create new key form */}
         <div className="p-4 border-b space-y-3">
-          <p className="text-sm font-medium">Opret ny API nøgle</p>
+          <p className="text-sm font-medium">Opret ny API nogle</p>
           <div className="flex gap-2 flex-wrap">
             <Input
               className="h-8 text-sm flex-1 min-w-40"
@@ -223,7 +267,7 @@ export default function Admin() {
             />
             <Select value={newKeyUserId} onValueChange={setNewKeyUserId}>
               <SelectTrigger className="h-8 text-sm w-48">
-                <SelectValue placeholder="Vælg bruger" />
+                <SelectValue placeholder="Vaelg bruger" />
               </SelectTrigger>
               <SelectContent>
                 {users.map(u => (
@@ -245,7 +289,7 @@ export default function Admin() {
 
         {/* Keys list */}
         {apiKeys.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">Ingen API nøgler oprettet endnu.</p>
+          <p className="p-4 text-sm text-muted-foreground">Ingen API nogler oprettet endnu.</p>
         ) : (
           <div className="divide-y">
             {apiKeys.map(k => (
@@ -259,13 +303,13 @@ export default function Admin() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <code className="text-xs bg-muted px-2 py-1 rounded font-mono">{k.key.slice(0, 8)}…</code>
+                  <code className="text-xs bg-muted px-2 py-1 rounded font-mono">{k.key.slice(0, 8)}...</code>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground"
                     onClick={() => copyKey(k.key, k.id)}
-                    title="Kopiér nøgle"
+                    title="Kopier nogle"
                   >
                     {copiedKeyId === k.id ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
                   </Button>
@@ -289,12 +333,18 @@ export default function Admin() {
 
 interface UserRowProps {
   user: User
+  families: Family[]
+  allStudents: Student[]
+  currentFamily?: { familyId: string; familyName: string }
+  linkedStudent?: Student
   onUpdate: (input: { approved?: boolean; role?: string; name?: string; password?: string }) => void
   onDelete: () => void
+  onChangeFamily: (familyId: string) => void
+  onLinkStudent: (studentId: string) => void
   isSelf: boolean
 }
 
-function UserRow({ user, onUpdate, onDelete, isSelf }: UserRowProps) {
+function UserRow({ user, families, allStudents, currentFamily, linkedStudent, onUpdate, onDelete, onChangeFamily, onLinkStudent, isSelf }: UserRowProps) {
   const [newPassword, setNewPassword] = useState('')
   const [showPasswordInput, setShowPasswordInput] = useState(false)
 
@@ -358,8 +408,8 @@ function UserRow({ user, onUpdate, onDelete, isSelf }: UserRowProps) {
             size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-primary"
             onClick={() => setShowPasswordInput(v => !v)}
-            aria-label="Sæt adgangskode"
-            title="Sæt adgangskode"
+            aria-label="Saet adgangskode"
+            title="Saet adgangskode"
           >
             <Key className="h-3.5 w-3.5" />
           </Button>
@@ -376,6 +426,51 @@ function UserRow({ user, onUpdate, onDelete, isSelf }: UserRowProps) {
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Family assignment */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Users className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Familie:</span>
+        <Select
+          value={currentFamily?.familyId ?? '_none'}
+          onValueChange={(v) => { if (v !== '_none') onChangeFamily(v) }}
+        >
+          <SelectTrigger className="h-7 w-48 text-xs">
+            <SelectValue placeholder="Ingen familie" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="_none" disabled>Ingen familie</SelectItem>
+            {families.map(f => (
+              <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {currentFamily && (
+          <span className="text-xs text-muted-foreground">({currentFamily.familyName})</span>
+        )}
+      </div>
+
+      {/* Student link */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-muted-foreground">Elev:</span>
+        <Select
+          value={linkedStudent?.id ?? '_none'}
+          onValueChange={(v) => { if (v !== '_none') onLinkStudent(v) }}
+        >
+          <SelectTrigger className="h-7 w-48 text-xs">
+            <SelectValue placeholder="Ingen elev" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="_none">Ingen elev</SelectItem>
+            {allStudents.map(s => (
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {linkedStudent && (
+          <span className="text-xs text-muted-foreground">({linkedStudent.name})</span>
+        )}
       </div>
 
       {showPasswordInput && (

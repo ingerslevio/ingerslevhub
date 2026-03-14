@@ -186,6 +186,25 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     return { movedStudents };
   });
 
+  // GET all students
+  fastify.get('/students', async () => {
+    return db.select().from(students).orderBy(students.name);
+  });
+
+  // PATCH update student (link to user)
+  fastify.patch<{ Params: { id: string } }>('/students/:id', async (request, reply) => {
+    const body = z.object({ userId: z.string().uuid().optional(), name: z.string().min(1).optional() }).safeParse(request.body);
+    if (!body.success) return reply.status(400).send({ error: 'Validation failed' });
+
+    const updateData: Record<string, unknown> = {};
+    if (body.data.userId !== undefined) updateData.userId = body.data.userId;
+    if (body.data.name !== undefined) updateData.name = body.data.name;
+
+    const [updated] = await db.update(students).set(updateData).where(eq(students.id, request.params.id)).returning();
+    if (!updated) return reply.status(404).send({ error: 'Student not found' });
+    return updated;
+  });
+
   // GET all API keys
   fastify.get('/api-keys', async () => {
     const rows = await db

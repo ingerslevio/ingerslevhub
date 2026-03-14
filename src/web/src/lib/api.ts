@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag, AulaToken, ApiKey, Todo, RecurringTodo } from '@/types'
+import type { User, MealPlan, Meal, HomeworkTask, Student, CalendarEvent, Recipe, GroceryList, GroceryListItem, GroceryProduct, GroceryCategory, RecipeTag, AulaToken, ApiKey, Todo, RecurringTodo, Family } from '@/types'
 
 
 const client = axios.create({
@@ -90,6 +90,25 @@ export const api = {
     },
     async deleteApiKey(id: string): Promise<void> {
       await client.delete(`/api/admin/api-keys/${id}`)
+    },
+    async listFamilies(): Promise<Family[]> {
+      const { data } = await client.get('/api/admin/families')
+      return data
+    },
+    async addFamilyMember(familyId: string, userId: string, role?: string): Promise<unknown> {
+      const { data } = await client.post(`/api/admin/families/${familyId}/members`, { userId, role: role ?? 'member' })
+      return data
+    },
+    async removeFamilyMember(userId: string): Promise<void> {
+      await client.delete(`/api/admin/families/members/${userId}`)
+    },
+    async listStudents(): Promise<Student[]> {
+      const { data } = await client.get('/api/admin/students')
+      return data
+    },
+    async linkStudentToUser(studentId: string, userId: string): Promise<unknown> {
+      const { data } = await client.patch(`/api/admin/students/${studentId}`, { userId })
+      return data
     },
   },
   meals: {

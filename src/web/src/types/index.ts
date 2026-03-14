@@ -167,6 +167,20 @@ export interface ApiKey {
   createdAt: string
 }
 
+export interface FamilyMember {
+  familyId: string
+  userId: string
+  role: string
+  familyRole?: string
+}
+
+export interface Family {
+  id: string
+  name: string
+  createdAt: string
+  members: FamilyMember[]
+}
+
 export interface Todo {
   id: string
   userId: string
