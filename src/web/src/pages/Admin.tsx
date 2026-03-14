@@ -25,7 +25,7 @@ export default function Admin() {
   })
 
   const updateUserMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string; input: { approved?: boolean; role?: string; name?: string } }) =>
+    mutationFn: ({ id, input }: { id: string; input: { approved?: boolean; role?: string; name?: string; password?: string } }) =>
       api.admin.updateUser(id, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }),
   })
@@ -289,70 +289,119 @@ export default function Admin() {
 
 interface UserRowProps {
   user: User
-  onUpdate: (input: { approved?: boolean; role?: string; name?: string }) => void
+  onUpdate: (input: { approved?: boolean; role?: string; name?: string; password?: string }) => void
   onDelete: () => void
   isSelf: boolean
 }
 
 function UserRow({ user, onUpdate, onDelete, isSelf }: UserRowProps) {
-  return (
-    <div className="flex items-center gap-3 p-3 flex-wrap">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{user.name}</p>
-        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-        {user.createdAt && (
-          <p className="text-xs text-muted-foreground opacity-60">
-            Oprettet: {new Date(user.createdAt).toLocaleDateString('da-DK')}
-          </p>
-        )}
-      </div>
+  const [newPassword, setNewPassword] = useState('')
+  const [showPasswordInput, setShowPasswordInput] = useState(false)
 
-      <div className="flex items-center gap-3 flex-wrap shrink-0">
-        <div className="flex items-center gap-1.5">
-          <Checkbox
-            id={`approved-${user.id}`}
-            checked={user.approved}
-            onCheckedChange={(checked) => onUpdate({ approved: !!checked })}
-            disabled={isSelf}
-          />
-          <label htmlFor={`approved-${user.id}`} className="text-xs text-muted-foreground cursor-pointer">
-            Godkendt
-          </label>
+  const handleSetPassword = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newPassword.trim()) return
+    onUpdate({ password: newPassword.trim() })
+    setNewPassword('')
+    setShowPasswordInput(false)
+  }
+
+  return (
+    <div className="p-3 space-y-2">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{user.name}</p>
+          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          {user.createdAt && (
+            <p className="text-xs text-muted-foreground opacity-60">
+              Oprettet: {new Date(user.createdAt).toLocaleDateString('da-DK')}
+            </p>
+          )}
         </div>
 
-        <Select
-          value={user.role}
-          onValueChange={(v) => onUpdate({ role: v })}
-          disabled={isSelf}
-        >
-          <SelectTrigger className="h-7 w-24 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="user">Bruger</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3 flex-wrap shrink-0">
+          <div className="flex items-center gap-1.5">
+            <Checkbox
+              id={`approved-${user.id}`}
+              checked={user.approved}
+              onCheckedChange={(checked) => onUpdate({ approved: !!checked })}
+              disabled={isSelf}
+            />
+            <label htmlFor={`approved-${user.id}`} className="text-xs text-muted-foreground cursor-pointer">
+              Godkendt
+            </label>
+          </div>
 
-        {user.role === 'admin' && (
-          <Badge variant="secondary" className="text-xs shrink-0">
-            <ShieldCheck className="h-3 w-3 mr-1" />
-            Admin
-          </Badge>
-        )}
+          <Select
+            value={user.role}
+            onValueChange={(v) => onUpdate({ role: v })}
+            disabled={isSelf}
+          >
+            <SelectTrigger className="h-7 w-24 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="user">Bruger</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
 
-        {!isSelf && (
+          {user.role === 'admin' && (
+            <Badge variant="secondary" className="text-xs shrink-0">
+              <ShieldCheck className="h-3 w-3 mr-1" />
+              Admin
+            </Badge>
+          )}
+
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-            onClick={onDelete}
-            aria-label="Slet bruger"
+            className="h-7 w-7 text-muted-foreground hover:text-primary"
+            onClick={() => setShowPasswordInput(v => !v)}
+            aria-label="Sæt adgangskode"
+            title="Sæt adgangskode"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Key className="h-3.5 w-3.5" />
           </Button>
-        )}
+
+          {!isSelf && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              onClick={onDelete}
+              aria-label="Slet bruger"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
       </div>
+
+      {showPasswordInput && (
+        <form onSubmit={handleSetPassword} className="flex items-center gap-2">
+          <Input
+            type="password"
+            placeholder="Ny adgangskode"
+            value={newPassword}
+            onChange={e => setNewPassword(e.target.value)}
+            className="h-7 text-xs flex-1 max-w-48"
+            autoFocus
+          />
+          <Button type="submit" size="sm" className="h-7 text-xs" disabled={!newPassword.trim()}>
+            Gem
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => { setShowPasswordInput(false); setNewPassword('') }}
+          >
+            Annuller
+          </Button>
+        </form>
+      )}
     </div>
   )
 }
