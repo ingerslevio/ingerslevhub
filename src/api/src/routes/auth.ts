@@ -185,8 +185,43 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       createdAt: user.createdAt,
       role: user.role,
       approved: user.approved,
+      passwordHash: user.passwordHash ? true : null, // boolean indicator only
     };
   });
+
+  // PUT /auth/password — skift adgangskode for indlogget bruger
+  fastify.put(
+    '/password',
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      const schema = z.object({
+        currentPassword: z.string().optional(),
+        newPassword: z.string().min(8, 'Adgangskoden skal være mindst 8 tegn'),
+        confirmPassword: z.string(),
+      });
+      const parsed = schema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Ugyldig input' });
+      }
+      const { currentPassword, newPassword, confirmPassword } = parsed.data;
+      if (newPassword !== confirmPassword) {
+        return reply.status(400).send({ error: 'De to adgangskoder er ikke ens' });
+      }
+      const user = request.currentUser;
+      // If user already has a password, verify current one
+      if (user.passwordHash) {
+        if (!currentPassword) {
+          return reply.status(400).send({ error: 'Nuværende adgangskode er påkrævet' });
+        }
+        if (!verifyPassword(currentPassword, user.passwordHash)) {
+          return reply.status(401).send({ error: 'Nuværende adgangskode er forkert' });
+        }
+      }
+      const newHash = hashPassword(newPassword);
+      await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id));
+      return { ok: true };
+    },
+  );
 
   fastify.post('/logout', async (_request, reply) => {
     reply.clearCookie('session', { path: '/' });

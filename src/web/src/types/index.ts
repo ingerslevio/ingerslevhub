@@ -8,6 +8,8 @@ export interface User {
   role: string
   approved: boolean
   createdAt?: string
+  passwordHash?: string | null
+  apiKey?: string
 }
 
 export interface Student {

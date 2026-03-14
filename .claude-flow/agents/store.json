@@ -1,0 +1,19 @@
+{
+  "agents": {
+    "agent-1773438757354-yqtwa3": {
+      "agentId": "agent-1773438757354-yqtwa3",
+      "agentType": "coder",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "provider": "anthropic",
+        "task": "Implement ING-2: password change feature for ingerslevhub.\n\n## Context\nStack: Fastify + TypeScript backend, React + Shadcn/ui frontend, Drizzle ORM, PostgreSQL.\nAuth uses JWT sessions + bcrypt. Users table has 'password_hash' column.\nWorking dir: /Users/emil/workspace/ingerslevhub\n\n## Tasks\n\n### 1. Backend: PUT /api/auth/password\nFile: src/api/src/routes/auth.ts\n\nAdd endpoint that:\n- Requires authentication (fastify.authenticate hook)  \n- Body: { currentPassword: string, newPassword: string (min 8 chars) }\n- If user has no passwordHash (Google user): skip currentPassword check, just set new one\n- If user has passwordHash: verify currentPassword with bcrypt.compare\n- Hash newPassword with bcrypt (rounds: 10)\n- Update users.passwordHash in DB\n- Return { ok: true } or 400/401 error in Danish\n\n### 2. Frontend: Password change form\nFile: src/web/src/pages/Settings.tsx (create if doesn't exist, or find existing settings page)\n\nAdd a 'Skift adgangskode' section with:\n- Input: Nuværende adgangskode (skip/hide if Google user with no password)\n- Input: Ny adgangskode\n- Input: Bekræft ny adgangskode\n- Submit button\n- Danish error messages\n- Use Shadcn/ui components (Input, Button, Label, Card)\n- API call: PUT /api/auth/password\n\n### 3. Navigation\nMake sure Settings page is accessible from the app navigation.\n\n## Rules\n- Read files before editing\n- Use existing patterns from the codebase\n- TypeScript strict mode\n- Commit with message: 'feat(ING-2): skift password for eksisterende brugere'"
+      },
+      "createdAt": "2026-03-13T21:52:37.358Z",
+      "model": "opus",
+      "modelRoutedBy": "router"
+    }
+  },
+  "version": "3.0.0"
+}

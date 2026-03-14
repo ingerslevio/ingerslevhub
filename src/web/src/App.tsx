@@ -15,6 +15,7 @@ const Login = React.lazy(() => import('./pages/Login'))
 const Admin = React.lazy(() => import('./pages/Admin'))
 const Aula = React.lazy(() => import('./pages/Aula'))
 const Todos = React.lazy(() => import('./pages/Todos'))
+const Settings = React.lazy(() => import('./pages/Settings'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,6 +79,7 @@ function AuthenticatedRoutes() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/aula" element={<Aula />} />
           <Route path="/todos" element={<Todos />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </Suspense>
     </Shell>
